@@ -77,7 +77,7 @@ export default function LandingPage() {
 
   return (
     <div
-      className={`${inter.className} relative flex min-h-[100svh] flex-col overflow-hidden bg-white font-semibold uppercase tracking-widest text-black`}
+      className={`${inter.className} relative flex min-h-[100svh] min-h-[100dvh] flex-col overflow-x-hidden bg-white font-semibold uppercase tracking-widest text-black`}
       style={{ fontFamily: "'Inter', sans-serif" }}
     >
       {/* Full-screen video background */}
@@ -191,9 +191,9 @@ export default function LandingPage() {
       {/* 2. Stats row */}
       <section
         id="modules"
-        className="relative z-10 flex flex-1 items-center justify-end px-5 py-8 sm:px-8 md:px-12 md:py-0"
+        className="relative z-10 flex flex-1 items-center justify-end overflow-x-auto px-5 py-8 sm:px-8 md:px-12 md:py-0"
       >
-        <div className="flex items-end gap-5 sm:gap-8 md:gap-10">
+        <div className="flex shrink-0 items-end gap-4 sm:gap-8 md:gap-10">
           {STATS.map((stat, i) => (
             <motion.div
               key={stat.label}

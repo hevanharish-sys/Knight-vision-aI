@@ -56,7 +56,7 @@ export function AppShell({ children }: { children: ReactNode }) {
     : NAV;
 
   return (
-    <div className="relative min-h-screen">
+    <div className="relative min-h-screen min-h-[100dvh]">
       <div className="pointer-events-none fixed inset-0 -z-10 overflow-hidden" aria-hidden>
         <div className="lb-bg-blob absolute -left-24 top-24 h-72 w-72 rounded-full bg-[#19b5b8]/12 blur-3xl" />
         <div
@@ -65,16 +65,17 @@ export function AppShell({ children }: { children: ReactNode }) {
         />
       </div>
 
-      <header className="sticky top-0 z-40 border-b border-black/5 bg-[rgba(255,255,255,0.78)] backdrop-blur-2xl lb-header-in">
+      <header className="kv-safe-top sticky top-0 z-40 border-b border-black/5 bg-[rgba(255,255,255,0.78)] backdrop-blur-2xl lb-header-in">
         <div
-          className={`mx-auto flex items-center justify-between gap-3 px-3 py-3 sm:px-4 ${
+          className={`mx-auto flex items-center justify-between gap-2 px-3 py-3 sm:gap-3 sm:px-4 ${
             wide ? "max-w-[1400px]" : "max-w-6xl"
           }`}
         >
           <BrandLogo
             href={easyUser ? "/app/easy" : "/app"}
             variant="wordmark"
-            height={34}
+            height={30}
+            className="max-w-[min(52vw,200px)]"
           />
 
           <nav
@@ -99,9 +100,9 @@ export function AppShell({ children }: { children: ReactNode }) {
             })}
           </nav>
 
-          <div className="flex items-center gap-2">
+          <div className="flex shrink-0 items-center gap-1.5 sm:gap-2">
             {user ? (
-              <span className="hidden rounded-full border border-black/8 bg-white px-3 py-1.5 text-xs font-bold text-[#0b1f33] shadow-sm sm:inline-flex lb-fade-up">
+              <span className="hidden max-w-[8rem] truncate rounded-full border border-black/8 bg-white px-3 py-1.5 text-xs font-bold text-[#0b1f33] shadow-sm sm:inline-flex lb-fade-up">
                 {user.name}
               </span>
             ) : null}
@@ -110,14 +111,14 @@ export function AppShell({ children }: { children: ReactNode }) {
           </div>
         </div>
 
-        <div className="flex gap-1.5 overflow-x-auto px-3 pb-3 lg:hidden">
+        <div className="kv-scroll-x flex gap-1.5 px-3 pb-3 lg:hidden">
           {navItems.map((item) => {
             const active = isActive(pathname, item.href);
             return (
               <Link
                 key={item.href}
                 href={item.href}
-                className={`shrink-0 rounded-full px-3.5 py-2 text-xs font-bold transition duration-300 ${
+                className={`inline-flex min-h-11 shrink-0 items-center rounded-full px-4 py-2.5 text-xs font-bold transition duration-300 ${
                   active
                     ? "bg-[#0b1f33] text-white lb-nav-active"
                     : "bg-white text-[#0b1f33] shadow-sm"
@@ -131,9 +132,9 @@ export function AppShell({ children }: { children: ReactNode }) {
       </header>
 
       <div
-        className={`mx-auto px-3 py-4 sm:px-4 sm:py-6 ${
+        className={`mx-auto w-full px-3 py-4 sm:px-4 sm:py-6 ${
           wide ? "max-w-[1400px]" : "max-w-6xl"
-        } ${onHome ? "pb-10" : ""}`}
+        } ${onHome ? "pb-10" : ""} kv-safe-bottom`}
       >
         <main key={routeKey} className="lb-route-in">
           {children}

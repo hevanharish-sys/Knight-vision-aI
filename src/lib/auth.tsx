@@ -9,7 +9,7 @@ import {
   useState,
   type ReactNode,
 } from "react";
-import { supabase, type KvUserRow } from "@/lib/supabase";
+import { supabase, type KvUserRow, supabaseConfigured } from "@/lib/supabase";
 
 export type AuthUser = {
   id: string;
@@ -107,6 +107,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return { ok: false, error: "PIN must be 4 digits." };
     }
 
+    if (!supabaseConfigured) {
+      return {
+        ok: false,
+        error:
+          "Supabase is not configured on this device build. Set NEXT_PUBLIC_SUPABASE_URL and KEY on Vercel, then Redeploy.",
+      };
+    }
+
     const { data: existing, error: lookupError } = await supabase
       .from("kv_users")
       .select("id")
@@ -161,6 +169,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     if (cleanPin.length !== 4) {
       return { ok: false, error: "PIN must be 4 digits." };
+    }
+
+    if (!supabaseConfigured) {
+      return {
+        ok: false,
+        error:
+          "Supabase is not configured on this device build. Set NEXT_PUBLIC_SUPABASE_URL and KEY on Vercel, then Redeploy.",
+      };
     }
 
     const { data, error } = await supabase

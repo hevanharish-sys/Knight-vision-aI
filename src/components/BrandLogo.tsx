@@ -33,7 +33,7 @@ export function BrandLogo({
       height={height}
       priority={priority}
       className={`object-contain ${isEmblem ? "rounded-xl" : ""} ${className}`}
-      style={{ height, width: "auto", maxWidth: "none" }}
+      style={{ height, width: "auto", maxWidth: "100%" }}
       sizes={`${width}px`}
     />
   );

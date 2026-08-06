@@ -1,11 +1,13 @@
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 
-const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-const key = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
+const url = process.env.NEXT_PUBLIC_SUPABASE_URL?.trim();
+const key = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY?.trim();
 
-if (!url || !key) {
+export const supabaseConfigured = Boolean(url && key);
+
+if (!supabaseConfigured && typeof window !== "undefined") {
   console.warn(
-    "[supabase] Missing NEXT_PUBLIC_SUPABASE_URL or NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY"
+    "[supabase] Missing NEXT_PUBLIC_SUPABASE_URL or NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY. Redeploy after setting them on Vercel (not Sensitive)."
   );
 }
 

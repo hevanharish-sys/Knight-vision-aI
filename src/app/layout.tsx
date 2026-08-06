@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Figtree, Inter, Outfit, Sora } from "next/font/google";
 import { AuthProvider } from "@/lib/auth";
 import { ProfileProvider } from "@/lib/profile";
@@ -30,6 +30,26 @@ export const metadata: Metadata = {
   title: "Knight Vision AI — Healthcare Without Barriers",
   description:
     "AI that empowers visually impaired and deaf individuals to communicate confidently with healthcare professionals.",
+  applicationName: "Knight Vision AI",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "default",
+    title: "Knight Vision",
+  },
+  formatDetection: {
+    telephone: false,
+  },
+};
+
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 5,
+  viewportFit: "cover",
+  themeColor: [
+    { media: "(prefers-color-scheme: light)", color: "#eef6f8" },
+    { media: "(prefers-color-scheme: dark)", color: "#0b1f33" },
+  ],
 };
 
 export default function RootLayout({
@@ -42,7 +62,7 @@ export default function RootLayout({
       lang="en"
       className={`${outfit.variable} ${figtree.variable} ${sora.variable} ${inter.variable} h-full antialiased`}
     >
-      <body className="min-h-full flex flex-col font-sans">
+      <body className="flex min-h-full min-h-[100dvh] flex-col overflow-x-hidden font-sans">
         <ProfileProvider>
           <AuthProvider>{children}</AuthProvider>
         </ProfileProvider>
