@@ -1,36 +1,67 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Knight Vision AI
 
-## Getting Started
+**One AI. Infinite Ways to Communicate.**
 
-First, run the development server:
+Multimodal accessibility platform for speech ↔ text, sign language interpretation, vision assistance, document reading, live translation, and emergency SOS.
+
+## Quick start
 
 ```bash
+npm install
+cp .env.example .env.local
+# Add GEMINI_API_KEY (for local Next API) and Supabase keys
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+
+# Optional: run Render-style API locally
+npm --prefix server install
+npm run dev:api
+# then set NEXT_PUBLIC_API_URL=http://localhost:4000 in .env.local
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open [http://localhost:3000](http://localhost:3000).
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Deploy
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+### Backend — Render
+1. New Web Service from this repo
+2. Root directory: `server`
+3. Build: `npm install` · Start: `npm start`
+4. Env vars: `GEMINI_API_KEY`, `ALLOWED_ORIGIN=https://YOUR_VERCEL_APP.vercel.app`
+5. Copy the service URL (e.g. `https://knight-vision-api.onrender.com`)
 
-## Learn More
+Or use Blueprint: `render.yaml` at the repo root.
 
-To learn more about Next.js, take a look at the following resources:
+### Frontend — Vercel
+1. Import this repo in Vercel
+2. Framework: Next.js (root of repo)
+3. Env vars:
+   - `NEXT_PUBLIC_SUPABASE_URL`
+   - `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`
+   - `NEXT_PUBLIC_API_URL=https://YOUR_RENDER_API.onrender.com`
+4. Deploy, then set Render `ALLOWED_ORIGIN` to the Vercel URL
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+Auth (name + PIN) stays on Supabase from the browser; Gemini AI calls go to Render.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Modules
 
-## Deploy on Vercel
+| Module | How it works |
+|--------|----------------|
+| Speech ↔ Text | Web Speech API live captions + Gemini audio transcription fallback |
+| Sign Interpreter | Holistic SLR: pose+face+both hands → 30–60 frame sequence → recognize → smooth → speech |
+| Vision Assistant | Camera frames → Gemini vision descriptions + TTS |
+| Live Translator | Speech/text → Gemini translation across Indian languages |
+| Document Reader | Image OCR + plain-language rewrite via Gemini |
+| Emergency SOS | Geolocation + medical profile + local-language announcement |
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## Judge demo script
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+1. Onboarding → choose **Deaf** → Sign module → open palm (**HELP**) or peace (**CHEST PAIN**)
+2. Switch profile to **Blind** → Vision → live describe stairs / medicine label
+3. Speech ↔ Text → speak or tap a hospital demo line → giant captions
+4. Hit **SOS** → location + medical card + spoken assistance request
+
+## Notes
+
+- Sign language covers a **bounded demo vocabulary**, not unrestricted ASL.
+- Chromium browsers work best for Web Speech recognition.
+- Without `GEMINI_API_KEY`, browser STT/TTS and MediaPipe sign still run; vision / Gemini transcription / translate / document need the key.
