@@ -3,6 +3,7 @@
 import { useRef, useState } from "react";
 import { Camera, type CameraHandle } from "@/components/Camera";
 import { apiUrl } from "@/lib/api-base";
+import { readDocumentLocally } from "@/lib/document/localRead";
 import { saveHubEntry } from "@/lib/hub";
 import { speak, stopSpeaking } from "@/lib/speech";
 
@@ -62,45 +63,74 @@ export default function DocumentPage() {
     setNotice("Reading document…");
     stopSpeaking();
     try {
-      const res = await fetch(apiUrl("/api/document/analyze"), {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ image, language }),
-      });
-      const data = await res.json();
-      if (!res.ok) {
-        throw new Error(String(data.error || "Analysis failed"));
+      let original = "";
+      let explanation = "";
+      let deadlineHint = "";
+      let usedLocal = false;
+
+      try {
+        const res = await fetch(apiUrl("/api/document/analyze"), {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ image, language }),
+        });
+        const data = await res.json();
+        if (!res.ok) {
+          throw new Error(String(data.error || "Analysis failed"));
+        }
+
+        const needsFallback =
+          Boolean(data.fallback) ||
+          Boolean(data.soft) ||
+          !String(data.simpleExplanation || "").trim() ||
+          /cool|quota|rest|key|busy/i.test(
+            String(data.simpleExplanation || data.error || "")
+          );
+
+        if (!needsFallback) {
+          original = data.originalText || "";
+          explanation =
+            data.simpleExplanation || "Could not simplify this document.";
+          deadlineHint = data.deadlineHint || "";
+        } else {
+          setNotice("Cloud busy — reading on this device…");
+          const local = await readDocumentLocally(image, language);
+          original = local.originalText;
+          explanation = local.simpleExplanation;
+          deadlineHint = local.deadlineHint;
+          usedLocal = true;
+        }
+      } catch {
+        setNotice("Cloud unavailable — reading on this device…");
+        const local = await readDocumentLocally(image, language);
+        original = local.originalText;
+        explanation = local.simpleExplanation;
+        deadlineHint = local.deadlineHint;
+        usedLocal = true;
       }
-      const explanation =
-        data.simpleExplanation || "Could not simplify this document.";
-      setOriginalText(data.originalText || "");
+
+      setOriginalText(original);
       setSimple(explanation);
-      setDeadline(data.deadlineHint || "");
+      setDeadline(deadlineHint);
       setResultKey((k) => k + 1);
       setFileName(label);
-
-      if (data.soft) {
-        setNotice(explanation);
-        speak(explanation);
-      } else {
-        setNotice("Plain-language summary ready.");
-        speak(explanation);
-        saveHubEntry({
-          type: "document",
-          title: "Document simplified",
-          content: `${explanation}\n\nDeadline: ${data.deadlineHint || "n/a"}\n\nOCR:\n${data.originalText || ""}`,
-        });
-      }
-      window.setTimeout(() => setNotice(""), 5000);
+      setNotice(
+        usedLocal
+          ? "On-device reading ready. Cloud summary will return when quota recovers."
+          : "Plain-language summary ready."
+      );
+      speak(explanation);
+      saveHubEntry({
+        type: "document",
+        title: usedLocal ? "Document (on-device)" : "Document simplified",
+        content: `${explanation}\n\nDeadline: ${deadlineHint || "n/a"}\n\nOCR:\n${original || ""}`,
+      });
+      window.setTimeout(() => setNotice(""), 6000);
     } catch (e) {
       const message = e instanceof Error ? e.message : "Analysis failed";
-      setError("");
-      setNotice(
-        /quota|rest|cool/i.test(message)
-          ? "Please try again in about 20 seconds."
-          : message
-      );
-      window.setTimeout(() => setNotice(""), 5000);
+      setError(message);
+      setNotice("");
+      speak("Sorry, I could not read that document. Please try again.");
     } finally {
       setBusy(false);
     }

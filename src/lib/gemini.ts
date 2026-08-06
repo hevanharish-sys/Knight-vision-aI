@@ -142,18 +142,66 @@ export async function generateWithGemini(options: {
   throw lastError || new Error("All Gemini models failed");
 }
 
+export type GeminiSoftFailure =
+  | { ok: true; text: string }
+  | {
+      ok: false;
+      reason: "cooldown" | "quota" | "invalid-key" | "error";
+      message: string;
+    };
+
 /**
- * Soft wrapper for UI features: returns null instead of throwing on quota/errors.
+ * Soft wrapper for UI features: never throws; reports why cloud failed.
  */
 export async function tryGenerateWithGemini(options: {
   systemInstruction?: string;
   parts: GeminiPart[];
 }): Promise<string | null> {
-  if (isGeminiCoolingDown()) return null;
+  const result = await tryGenerateWithGeminiDetailed(options);
+  return result.ok ? result.text : null;
+}
+
+export async function tryGenerateWithGeminiDetailed(options: {
+  systemInstruction?: string;
+  parts: GeminiPart[];
+}): Promise<GeminiSoftFailure> {
+  if (isGeminiCoolingDown()) {
+    return {
+      ok: false,
+      reason: "cooldown",
+      message: "Cloud AI is briefly resting after heavy use.",
+    };
+  }
   try {
     const text = await generateWithGemini(options);
-    return text || null;
-  } catch {
-    return null;
+    if (!text) {
+      return {
+        ok: false,
+        reason: "error",
+        message: "Cloud AI returned an empty response.",
+      };
+    }
+    return { ok: true, text };
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    if (
+      message.includes("Invalid GEMINI_API_KEY") ||
+      message.includes("API_KEY_INVALID")
+    ) {
+      return { ok: false, reason: "invalid-key", message };
+    }
+    if (
+      isQuotaError(message) ||
+      message.includes("quota busy") ||
+      message.includes("on-device results")
+    ) {
+      markGeminiCooldown(25_000);
+      return {
+        ok: false,
+        reason: "quota",
+        message: "Cloud AI quota is busy right now.",
+      };
+    }
+    return { ok: false, reason: "error", message };
   }
 }

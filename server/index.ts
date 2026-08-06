@@ -261,21 +261,24 @@ app.post("/api/document/analyze", async (req, res) => {
     if (!hasGeminiKey()) {
       return res.json({
         originalText: "",
-        simpleExplanation:
-          "Document reading needs a cloud key. Add GEMINI_API_KEY on the Render API service.",
+        simpleExplanation: "",
         deadlineHint: "",
         soft: true,
+        fallback: true,
+        source: "no-key",
+        error: "Document cloud reading needs GEMINI_API_KEY.",
       });
     }
 
     if (isGeminiCoolingDown()) {
       return res.json({
         originalText: "",
-        simpleExplanation:
-          "Cloud reading is cooling down for a short moment. Keep this page open and tap Analyze again in about 20 seconds.",
+        simpleExplanation: "",
         deadlineHint: "",
         soft: true,
+        fallback: true,
         source: "cooldown",
+        error: "Cloud AI is briefly resting after heavy use.",
       });
     }
 
@@ -296,11 +299,12 @@ deadlineHint should convert relative deadlines into a concrete suggestion when p
     if (!raw) {
       return res.json({
         originalText: "",
-        simpleExplanation:
-          "Cloud reading is cooling down. Please try Analyze again in about 20 seconds.",
+        simpleExplanation: "",
         deadlineHint: "",
         soft: true,
+        fallback: true,
         source: "quota",
+        error: "Cloud AI quota is busy right now.",
       });
     }
 

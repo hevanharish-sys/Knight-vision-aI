@@ -1,9 +1,8 @@
 import { NextResponse } from "next/server";
 import {
   hasGeminiKey,
-  isGeminiCoolingDown,
   parseDataUrl,
-  tryGenerateWithGemini,
+  tryGenerateWithGeminiDetailed,
 } from "@/lib/gemini";
 
 export const runtime = "nodejs";
@@ -25,31 +24,20 @@ export async function POST(request: Request) {
       return NextResponse.json(
         {
           originalText: "",
-          simpleExplanation:
-            "Document reading needs a cloud key. Add GEMINI_API_KEY in .env.local, then try again.",
+          simpleExplanation: "",
           deadlineHint: "",
           soft: true,
-        },
-        { status: 200 }
-      );
-    }
-
-    if (isGeminiCoolingDown()) {
-      return NextResponse.json(
-        {
-          originalText: "",
-          simpleExplanation:
-            "Cloud reading is cooling down for a short moment. Keep this page open and tap Analyze again in about 20 seconds.",
-          deadlineHint: "",
-          soft: true,
-          source: "cooldown",
+          source: "no-key",
+          fallback: true,
+          error:
+            "Document cloud reading needs GEMINI_API_KEY. Using on-device OCR instead.",
         },
         { status: 200 }
       );
     }
 
     const { mimeType, data } = parseDataUrl(image);
-    const raw = await tryGenerateWithGemini({
+    const result = await tryGenerateWithGeminiDetailed({
       systemInstruction: `You are Knight Vision Smart Document Reader.
 OCR the document, then explain it in plain ${language} for someone with limited literacy.
 Return ONLY valid JSON with keys: originalText, simpleExplanation, deadlineHint.
@@ -62,21 +50,22 @@ deadlineHint should convert relative deadlines into a concrete suggestion when p
       ],
     });
 
-    if (!raw) {
+    if (!result.ok) {
       return NextResponse.json(
         {
           originalText: "",
-          simpleExplanation:
-            "Cloud reading is cooling down. Please try Analyze again in about 20 seconds.",
+          simpleExplanation: "",
           deadlineHint: "",
           soft: true,
-          source: "quota",
+          fallback: true,
+          source: result.reason,
+          error: result.message,
         },
         { status: 200 }
       );
     }
 
-    const cleaned = raw
+    const cleaned = result.text
       .replace(/^```json\s*/i, "")
       .replace(/```$/i, "")
       .trim();
@@ -101,6 +90,7 @@ deadlineHint should convert relative deadlines into a concrete suggestion when p
       simpleExplanation:
         parsed.simpleExplanation || "Could not simplify this document.",
       deadlineHint: parsed.deadlineHint || "",
+      source: "gemini",
     });
   } catch (error) {
     const message =
@@ -108,10 +98,11 @@ deadlineHint should convert relative deadlines into a concrete suggestion when p
     return NextResponse.json(
       {
         originalText: "",
-        simpleExplanation:
-          "Something went wrong reading the document. Please try again shortly.",
+        simpleExplanation: "",
         deadlineHint: "",
         soft: true,
+        fallback: true,
+        source: "error",
         error: message,
       },
       { status: 200 }
