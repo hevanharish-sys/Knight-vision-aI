@@ -8,7 +8,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
 
   if (!ready) {
     return (
-      <div className="grid min-h-screen place-items-center text-[#486581]">
+      <div className="grid min-h-screen place-items-center text-[#737373]">
         Preparing Knight Vision…
       </div>
     );

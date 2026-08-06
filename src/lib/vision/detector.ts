@@ -98,10 +98,11 @@ const FRIENDLY: Record<string, string> = {
   donut: "donut",
   cake: "cake",
   chair: "chair",
-  couch: "couch",
+  couch: "sofa",
   "potted plant": "plant",
   bed: "bed",
   "dining table": "table",
+  table: "table",
   toilet: "toilet",
   tv: "TV",
   laptop: "laptop",
@@ -122,6 +123,39 @@ const FRIENDLY: Record<string, string> = {
   "hair drier": "hair dryer",
   toothbrush: "toothbrush",
 };
+
+/** Everyday items Gemini should prioritize (beyond COCO-80). */
+export const PRIORITY_SPOT_ITEMS = [
+  "headphones",
+  "earbuds",
+  "microphone",
+  "mic",
+  "watch",
+  "wristwatch",
+  "id card",
+  "badge",
+  "table",
+  "desk",
+  "chair",
+  "sofa",
+  "laptop",
+  "phone",
+  "keyboard",
+  "mouse",
+  "bottle",
+  "cup",
+  "glasses",
+  "bag",
+  "wallet",
+  "keys",
+  "pen",
+  "notebook",
+  "monitor",
+  "speaker",
+  "camera",
+  "door",
+  "stairs",
+] as const;
 
 function friendlyLabel(raw: string) {
   const key = raw.trim().toLowerCase();
@@ -209,8 +243,8 @@ export class VisionSceneDetector {
           this.objects = await ObjectDetector.createFromOptions(fileset, {
             baseOptions: { modelAssetPath, delegate },
             runningMode: "VIDEO",
-            scoreThreshold: 0.25,
-            maxResults: 25,
+            scoreThreshold: 0.18,
+            maxResults: 30,
           });
           objectOk = true;
           break;
@@ -264,12 +298,21 @@ export class VisionSceneDetector {
     for (const d of objRes.detections || []) {
       const cat = d.categories?.[0];
       const score = cat?.score ?? 0;
-      if (score < 0.28) continue;
+      if (score < 0.2) continue;
       const raw = cat?.categoryName || cat?.displayName || "object";
+      // Furniture often scores lower — keep chairs/tables even at 0.2
+      const label = friendlyLabel(raw);
+      const isFurniture =
+        label === "chair" ||
+        label === "table" ||
+        label === "sofa" ||
+        label === "bed" ||
+        label === "bench";
+      if (!isFurniture && score < 0.22) continue;
       const box = d.boundingBox;
       if (!box) continue;
       items.push({
-        label: friendlyLabel(raw),
+        label,
         score,
         kind: "object",
         box: {
@@ -341,12 +384,28 @@ export class VisionSceneDetector {
     const hazards = entries.filter(([l]) =>
       ["car", "bus", "truck", "motorcycle", "bicycle", "traffic light", "stop sign"].includes(l)
     );
+    const everyday = entries.filter(([l]) =>
+      [
+        "headphones",
+        "microphone",
+        "mic",
+        "watch",
+        "id card",
+        "chair",
+        "table",
+        "laptop",
+        "phone",
+        "bottle",
+      ].includes(l)
+    );
     const lead =
       hazards.length > 0
         ? "Watch for traffic nearby. "
-        : entries.some(([l]) => l === "person")
-          ? "People are in view. "
-          : "";
+        : everyday.length > 0
+          ? "Everyday items ahead. "
+          : entries.some(([l]) => l === "person")
+            ? "People are in view. "
+            : "";
 
     return `${lead}I can see: ${parts.join("; ")}.`;
   }
@@ -363,6 +422,66 @@ export class VisionSceneDetector {
     this.ready = false;
     this.latest = [];
   }
+}
+
+/**
+ * COCO-80 has no headphones / earbuds / watch / ID / mic classes.
+ * Small square "phone" detections are almost always earbud cases — fix on-device.
+ * Optional Gemini hint labels further correct the live boxes.
+ */
+export function refineDetections(
+  items: DetectedItem[],
+  geminiHints: string[] = []
+): DetectedItem[] {
+  const hints = geminiHints.map((h) => h.toLowerCase().trim()).filter(Boolean);
+  const has = (re: RegExp) => hints.some((h) => re.test(h));
+  const earbudsHint = has(/headphone|earbud|airpod|ear.?case|charging case/);
+  const watchHint = has(/\bwatch\b|wristwatch/);
+  const idHint = has(/id card|\bbadge\b|identity|id badge/);
+  const micHint = has(/\bmic\b|microphone/);
+
+  return items.map((item) => {
+    let label = item.label;
+    const { w, h } = item.box;
+    const ar = w / Math.max(h, 1e-6);
+    const area = w * h;
+    const squareish = ar >= 0.45 && ar <= 2.2;
+    const phoneShaped = (ar < 0.42 && h > w) || (ar > 2.35 && w > h);
+    const personNearby = items.some(
+      (i) => i.label === "person" || i.label === "face"
+    );
+
+    if (label === "phone") {
+      // Gemini already named earbuds/headphones → trust that over COCO "phone"
+      if (earbudsHint) {
+        label = area < 0.1 ? "earbuds" : "headphones";
+      } else if (watchHint && area < 0.1) {
+        label = "watch";
+      } else if (idHint && squareish) {
+        label = "id card";
+      } else if (micHint && area < 0.12) {
+        label = "microphone";
+      } else if (
+        // Earbud / headphone cases are almost always mislabeled as phone
+        squareish &&
+        !phoneShaped &&
+        area < 0.32 &&
+        (item.score < 0.86 || personNearby || area < 0.16)
+      ) {
+        label = area < 0.1 ? "earbuds" : "headphones";
+      }
+    }
+
+    if (label === "remote" && micHint) label = "microphone";
+    if (label === "clock" && (watchHint || (squareish && area < 0.08))) {
+      label = "watch";
+    }
+    if ((label === "book" || label === "remote") && idHint) label = "id card";
+    if (label === "cell phone") label = earbudsHint ? "headphones" : "phone";
+
+    if (label === item.label) return item;
+    return { ...item, label, score: Math.min(0.99, item.score + 0.05) };
+  });
 }
 
 export function drawDetections(
@@ -382,7 +501,7 @@ export function drawDetections(
     const bh = item.box.h * h;
     if (mirrored) x = w - x - bw;
 
-    const color = item.kind === "face" ? "#19b5b8" : "#e8ff6a";
+    const color = item.kind === "face" ? "#7C3AED" : "#e8ff6a";
     ctx.strokeStyle = color;
     ctx.lineWidth = 3;
     ctx.strokeRect(x, y, bw, bh);
@@ -390,7 +509,7 @@ export function drawDetections(
     const tag = `${item.label} ${Math.round(item.score * 100)}%`;
     ctx.font = "bold 14px Figtree, system-ui, sans-serif";
     const tw = ctx.measureText(tag).width + 12;
-    ctx.fillStyle = "rgba(11,31,51,0.88)";
+    ctx.fillStyle = "rgba(10,10,10,0.88)";
     ctx.fillRect(x, Math.max(0, y - 24), tw, 24);
     ctx.fillStyle = color;
     ctx.fillText(tag, x + 6, Math.max(16, y - 7));

@@ -129,13 +129,13 @@ export function SOSButton({ compact = false }: { compact?: boolean }) {
 
       {open ? (
         <div
-          className="fixed inset-0 z-50 grid place-items-center bg-[#0b1f33]/75 p-4 backdrop-blur-sm"
+          className="fixed inset-0 z-50 grid place-items-center bg-[#0A0A0A]/75 p-4 backdrop-blur-sm"
           role="dialog"
           aria-modal="true"
           aria-label="Emergency SOS panel"
         >
           <div
-            className={`lb-sos-panel relative w-full max-w-lg overflow-hidden rounded-[1.75rem] border border-white/10 bg-white p-6 text-[#0b1f33] shadow-[0_30px_80px_rgba(228,87,46,0.35)] ${
+            className={`lb-sos-panel relative w-full max-w-lg overflow-hidden rounded-[1.75rem] border border-white/10 bg-white p-6 text-[#0A0A0A] shadow-[0_30px_80px_rgba(228,87,46,0.35)] ${
               pulse ? "lb-sos-shake" : ""
             }`}
             onAnimationEnd={() => setPulse(false)}
@@ -152,7 +152,7 @@ export function SOSButton({ compact = false }: { compact?: boolean }) {
                 !
               </span>
             </div>
-            <p className="relative mt-2 text-sm text-[#486581]">
+            <p className="relative mt-2 text-sm text-[#737373]">
               Location shared · Contact notified (demo) · Medical card ready
             </p>
 
@@ -174,7 +174,7 @@ export function SOSButton({ compact = false }: { compact?: boolean }) {
             </div>
 
             <div className="relative mt-4 grid gap-2.5 text-sm">
-              <p className="rounded-xl bg-[#eef6f8] px-3 py-2">
+              <p className="rounded-xl bg-[#FAFAFA] px-3 py-2">
                 <strong>Location:</strong> {locationText}
               </p>
               <div className="grid gap-2 rounded-xl border border-black/5 bg-[#fafcfd] p-3 sm:grid-cols-2">

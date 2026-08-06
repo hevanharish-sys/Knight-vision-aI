@@ -19,12 +19,12 @@ export function SignAvatar({ phrase }: SignAvatarProps) {
 
   return (
     <div className="lb-panel flex flex-col items-center justify-center p-6">
-      <p className="mb-3 text-xs font-semibold uppercase tracking-[0.18em] text-[#0f8b8d]">
+      <p className="mb-3 text-xs font-semibold uppercase tracking-[0.18em] text-[#5E0ED7]">
         Sign avatar cue
       </p>
       <div className="lb-float relative h-40 w-28">
         <div className="absolute inset-x-6 top-0 h-14 rounded-full bg-gradient-to-b from-[#f2d0b0] to-[#e2b992] shadow-lg" />
-        <div className="absolute inset-x-4 top-12 h-24 rounded-[2rem] bg-gradient-to-b from-[#0f8b8d] to-[#0b1f33] shadow-xl" />
+        <div className="absolute inset-x-4 top-12 h-24 rounded-[2rem] bg-gradient-to-b from-[#5E0ED7] to-[#0A0A0A] shadow-xl" />
         <div
           className={`absolute h-10 w-10 rounded-full bg-[#f2d0b0] shadow-md transition-all duration-500 ${
             pose === "help"
@@ -48,7 +48,7 @@ export function SignAvatar({ phrase }: SignAvatarProps) {
           aria-hidden
         />
       </div>
-      <p className="mt-4 text-center text-sm font-semibold text-[#0b1f33]">
+      <p className="mt-4 text-center text-sm font-semibold text-[#0A0A0A]">
         {phrase || "Waiting for speech…"}
       </p>
     </div>

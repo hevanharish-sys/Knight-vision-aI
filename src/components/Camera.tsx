@@ -157,7 +157,7 @@ export const Camera = forwardRef<CameraHandle, CameraProps>(function Camera(
 
   return (
     <div
-      className={`relative overflow-hidden rounded-2xl bg-[#0b1f33] ${className}`}
+      className={`relative overflow-hidden rounded-2xl bg-[#0A0A0A] ${className}`}
     >
       <video
         ref={videoRef}
@@ -169,7 +169,7 @@ export const Camera = forwardRef<CameraHandle, CameraProps>(function Camera(
         }`}
       />
       {!active ? (
-        <div className="absolute inset-0 z-20 grid place-items-center bg-[#0b1f33] text-sm text-white/85">
+        <div className="absolute inset-0 z-20 grid place-items-center bg-[#0A0A0A] text-sm text-white/85">
           {status || "Starting camera…"}
         </div>
       ) : null}

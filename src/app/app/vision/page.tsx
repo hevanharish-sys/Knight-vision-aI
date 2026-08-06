@@ -11,6 +11,7 @@ import { speak, stopSpeaking } from "@/lib/speech";
 import {
   VisionSceneDetector,
   drawDetections,
+  refineDetections,
   type DetectedItem,
 } from "@/lib/vision/detector";
 import { askGeminiVision, fallbackSceneHint } from "@/lib/vision/describeScene";
@@ -26,6 +27,8 @@ function VisionPageInner() {
   const lastSpeakRef = useRef(0);
   const lastUiUpdateRef = useRef(0);
   const lastCountRef = useRef("");
+  const lastCorrectRef = useRef(0);
+  const extraLabelsRef = useRef<string[]>([]);
   const facingRef = useRef<"user" | "environment">("user");
   const profileRef = useRef<string | null>(null);
   const autoStarted = useRef(false);
@@ -47,6 +50,7 @@ function VisionPageInner() {
   const [detectorReady, setDetectorReady] = useState(false);
   const [mode, setMode] = useState<"gemini" | "live" | "offline">("live");
   const [items, setItems] = useState<DetectedItem[]>([]);
+  const [extraLabels, setExtraLabels] = useState<string[]>([]);
   const [countLabel, setCountLabel] = useState("0 detected");
   // Laptops usually only have a front camera — environment often shows a black feed
   const [facing, setFacing] = useState<"user" | "environment">("user");
@@ -60,6 +64,9 @@ function VisionPageInner() {
   useEffect(() => {
     facingRef.current = facing;
   }, [facing]);
+  useEffect(() => {
+    extraLabelsRef.current = extraLabels;
+  }, [extraLabels]);
   useEffect(() => () => stopSpeaking(), []);
 
   // Init MediaPipe object + face detectors
@@ -108,7 +115,9 @@ function VisionPageInner() {
 
       if (video && canvas && detector?.isReady && video.readyState >= 2) {
         try {
-          const detected = detector.detect(video);
+          const raw = detector.detect(video);
+          // Fix COCO mislabels (earbud case → phone) using shape + Gemini hints
+          const detected = refineDetections(raw, extraLabelsRef.current);
 
           canvas.width = video.videoWidth || 640;
           canvas.height = video.videoHeight || 480;
@@ -126,6 +135,41 @@ function VisionPageInner() {
               setCountLabel(label);
             }
             setItems(detected);
+          }
+
+          // COCO often calls earbud cases "phone" — auto-ask Gemini to confirm
+          const maybeWrongPhone = raw.some((d) => d.label === "phone");
+          if (
+            maybeWrongPhone &&
+            !busyRef.current &&
+            now - lastCorrectRef.current > 4500
+          ) {
+            lastCorrectRef.current = now;
+            const shot = cameraRef.current?.captureDataUrl(0.5);
+            if (shot) {
+              void askGeminiVision(
+                shot,
+                detector.summarize(detected)
+              ).then((gemini) => {
+                if (!gemini?.objects?.length) return;
+                setExtraLabels(gemini.objects);
+                const corrected = refineDetections(
+                  detector.getLatest(),
+                  gemini.objects
+                );
+                setItems(corrected);
+                if (
+                  gemini.objects.some((o) =>
+                    /headphone|earbud|mic|watch|id card/i.test(o)
+                  )
+                ) {
+                  setNotice(
+                    `Corrected: ${gemini.objects.slice(0, 6).join(", ")}`
+                  );
+                  window.setTimeout(() => setNotice(""), 4000);
+                }
+              });
+            }
           }
 
           if (liveRef.current && detected.length && !busyRef.current) {
@@ -168,7 +212,10 @@ function VisionPageInner() {
     setNotice("Reading scene with detector + Gemini…");
 
     try {
-      const detected = detector.detect(video);
+      const detected = refineDetections(
+        detector.detect(video),
+        extraLabelsRef.current
+      );
       setItems(detected);
       const localSummary = detector.summarize(detected);
       let summary = localSummary;
@@ -176,31 +223,41 @@ function VisionPageInner() {
         ? "detector"
         : "offline";
 
-      const shot = cameraRef.current?.captureDataUrl(0.45);
+      const shot = cameraRef.current?.captureDataUrl(0.55);
       if (shot) {
-        // Gemini connected for normal rich descriptions (OCR, hazards, context)
+        // Gemini: rich description + headphones / mic / watch / ID / furniture, etc.
         const gemini = await askGeminiVision(shot, localSummary);
         if (gemini) {
-          summary = gemini;
+          summary = gemini.description;
           source = "gemini";
           setMode("gemini");
+          const spots = (gemini.objects || []).filter(Boolean);
+          setExtraLabels(spots);
+          setItems(refineDetections(detected, spots));
+          const spotNote = spots.length
+            ? ` Spotted: ${spots.slice(0, 8).join(", ")}.`
+            : "";
           setNotice(
             detected.length
-              ? `Gemini + ${detected.length} on-device detection(s).`
-              : "Gemini scene description."
+              ? `Gemini + ${detected.length} on-device detection(s).${spotNote}`
+              : `Gemini scene description.${spotNote}`
           );
         } else if (!detected.length) {
           summary = await fallbackSceneHint(shot);
           setMode("offline");
+          setExtraLabels([]);
           setNotice("Used a quick offline hint. Fuller reading available shortly.");
         } else {
           setMode("live");
+          setExtraLabels([]);
           setNotice(
             `Showing ${detected.length} on-device detection(s). Tap Describe again shortly for a fuller reading.`
           );
         }
       } else if (!detected.length) {
-        setNotice("Point at people, bottles, chairs, phones, or cars.");
+        setNotice(
+          "Point at headphones, a mic, watch, ID card, table, chair, phone, or person."
+        );
       } else {
         setMode("live");
         setNotice(`Found ${detected.length} on-device item(s).`);
@@ -237,40 +294,43 @@ function VisionPageInner() {
     }
   }, [readyCam, detectorReady, search]);
 
-  const uniqueLabels = [...new Set(items.map((i) => i.label))].slice(0, 12);
+  const uniqueLabels = [
+    ...new Set([...items.map((i) => i.label), ...extraLabels]),
+  ].slice(0, 16);
 
   return (
     <div className={`space-y-5 ${easy ? "easy-mode" : ""}`}>
       <header className="lb-rise flex flex-wrap items-end justify-between gap-4">
         <div>
-          <p className="text-[11px] font-bold uppercase tracking-[0.22em] text-[#0f8b8d]">
+          <p className="text-[11px] font-bold uppercase tracking-[0.22em] text-[#5E0ED7]">
             Live object detection
           </p>
-          <h1 className="lb-display mt-1 text-4xl text-[#0b1f33] md:text-5xl">
+          <h1 className="lb-display mt-1 text-4xl text-[#0A0A0A] md:text-5xl">
             Vision Assistant
           </h1>
-          <p className="mt-2 max-w-xl text-[15px] leading-relaxed text-[#486581]">
-            On-device boxes for 80+ objects, plus Gemini for full spoken scene reading
-            (hazards, signs, text). If Gemini is rate-limited, detections still work.
+          <p className="mt-2 max-w-xl text-[15px] leading-relaxed text-[#737373]">
+            Live boxes for chairs, tables, phones, people, and more. Tap{" "}
+            <strong>Describe now</strong> to also spot headphones, mic, watch, ID
+            card, and other everyday items — then hear the scene aloud.
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
           <span
             className={`rounded-full px-3 py-1.5 text-xs font-bold ${
-              detectorReady ? "bg-[#d7f3f3] text-[#0f8b8d]" : "bg-black/5 text-[#486581]"
+              detectorReady ? "bg-[#EDE9FE] text-[#5E0ED7]" : "bg-black/5 text-[#737373]"
             }`}
           >
             {detectorReady ? "Detector ON" : "Loading detector…"}
           </span>
-          <span className="rounded-full bg-[#0b1f33] px-3 py-1.5 text-xs font-bold text-white">
+          <span className="rounded-full bg-[#0A0A0A] px-3 py-1.5 text-xs font-bold text-white">
             {countLabel}
           </span>
           <span
             className={`rounded-full px-3 py-1.5 text-xs font-bold shadow-sm ${
               mode === "gemini"
-                ? "bg-[#0f8b8d] text-white"
+                ? "bg-[#5E0ED7] text-white"
                 : mode === "live"
-                  ? "bg-white text-[#0b1f33]"
+                  ? "bg-white text-[#0A0A0A]"
                   : "bg-[#fff1ed] text-[#c2410c]"
             }`}
           >
@@ -289,7 +349,7 @@ function VisionPageInner() {
       </header>
 
       <div className="grid gap-4 xl:grid-cols-[1.35fr_1fr]">
-        <div className="relative overflow-hidden rounded-[1.75rem] bg-[#0b1f33] shadow-[0_24px_60px_rgba(11,31,51,0.22)]">
+        <div className="relative overflow-hidden rounded-[1.75rem] bg-[#0A0A0A] shadow-[0_24px_60px_rgba(10,10,10,0.22)]">
           <Camera
             ref={cameraRef}
             facingMode={facing}
@@ -306,7 +366,7 @@ function VisionPageInner() {
             className="pointer-events-none absolute inset-0 z-10 h-full w-full bg-transparent"
             aria-hidden
           />
-          <div className="pointer-events-none absolute inset-x-0 bottom-0 z-20 bg-gradient-to-t from-[#0b1f33]/90 via-[#0b1f33]/30 to-transparent p-5 pt-16">
+          <div className="pointer-events-none absolute inset-x-0 bottom-0 z-20 bg-gradient-to-t from-[#0A0A0A]/90 via-[#0A0A0A]/30 to-transparent p-5 pt-16">
             <p className="text-sm font-semibold text-white/95">
               {live
                 ? "Live speaking what I see"
@@ -318,7 +378,7 @@ function VisionPageInner() {
           </div>
           <button
             type="button"
-            className="absolute left-4 top-4 z-30 rounded-full bg-white/95 px-3 py-1.5 text-xs font-bold text-[#0b1f33] shadow"
+            className="absolute left-4 top-4 z-30 rounded-full bg-white/95 px-3 py-1.5 text-xs font-bold text-[#0A0A0A] shadow"
             onClick={() => {
               setReadyCam(false);
               setFacing((f) => (f === "user" ? "environment" : "user"));
@@ -327,20 +387,20 @@ function VisionPageInner() {
             Flip camera
           </button>
           {busy ? (
-            <div className="absolute right-4 top-4 z-30 rounded-full bg-white/95 px-3 py-1.5 text-xs font-bold text-[#0b1f33] shadow">
+            <div className="absolute right-4 top-4 z-30 rounded-full bg-white/95 px-3 py-1.5 text-xs font-bold text-[#0A0A0A] shadow">
               Describing…
             </div>
           ) : null}
         </div>
 
         <section
-          className="relative flex min-h-[280px] flex-col overflow-hidden rounded-[1.75rem] border border-white/60 bg-white/80 p-6 shadow-[0_18px_40px_rgba(11,31,51,0.08)] backdrop-blur-xl"
+          className="relative flex min-h-[280px] flex-col overflow-hidden rounded-[1.75rem] border border-white/60 bg-white/80 p-6 shadow-[0_18px_40px_rgba(10,10,10,0.08)] backdrop-blur-xl"
           aria-live="polite"
         >
-          <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-[#0f8b8d]">
+          <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-[#5E0ED7]">
             Spoken description
           </p>
-          <p className="mt-4 text-[clamp(1.25rem,2.4vw,1.75rem)] font-bold leading-snug tracking-tight text-[#0b1f33]">
+          <p className="mt-4 text-[clamp(1.25rem,2.4vw,1.75rem)] font-bold leading-snug tracking-tight text-[#0A0A0A]">
             {description}
           </p>
 
@@ -349,15 +409,16 @@ function VisionPageInner() {
               {uniqueLabels.map((label) => (
                 <span
                   key={label}
-                  className="rounded-full bg-[#0b1f33] px-3 py-1 text-xs font-bold text-white"
+                  className="rounded-full bg-[#0A0A0A] px-3 py-1 text-xs font-bold text-white"
                 >
                   {label}
                 </span>
               ))}
             </div>
           ) : (
-            <p className="mt-5 text-sm text-[#486581]">
-              No objects locked yet — point at a person, bottle, chair, phone, or doorway.
+            <p className="mt-5 text-sm text-[#737373]">
+              No objects locked yet — point at headphones, a mic, watch, ID card,
+              table, chair, bottle, or person, then tap Describe now.
             </p>
           )}
 
@@ -407,16 +468,18 @@ function VisionPageInner() {
       </div>
 
       <div className="rounded-[1.5rem] border border-black/5 bg-white/70 p-4">
-        <p className="text-sm font-bold text-[#0b1f33]">What I can detect</p>
-        <p className="mt-1 text-xs leading-relaxed text-[#486581]">
-          Live boxes: people, cars, chairs, bottles, phones, animals, and more (COCO-80).
-          <strong> Describe with Gemini</strong> adds natural language, OCR, and hazard
-          detail. Live speak stays on-device so it never burns your API quota.
+        <p className="text-sm font-bold text-[#0A0A0A]">What I can detect</p>
+        <p className="mt-1 text-xs leading-relaxed text-[#737373]">
+          Live boxes (on-device): people, chairs, tables, sofas, bottles, phones,
+          laptops, bags, cars, and 70+ more.{" "}
+          <strong>Describe now</strong> also spots headphones, earbuds, microphone,
+          watch, ID card / badge, desk, keys, doors, and stairs — then speaks the
+          scene. Live speak stays on-device so it never burns your API quota.
         </p>
       </div>
 
       {notice ? (
-        <p className="rounded-2xl border border-[#0f8b8d]/25 bg-[#d7f3f3]/70 px-4 py-3 text-sm text-[#0b1f33]">
+        <p className="rounded-2xl border border-[#5E0ED7]/25 bg-[#EDE9FE]/70 px-4 py-3 text-sm text-[#0A0A0A]">
           {notice}
         </p>
       ) : null}
@@ -431,7 +494,7 @@ export default function VisionPage() {
   return (
     <Suspense
       fallback={
-        <div className="rounded-2xl bg-white/70 p-8 text-[#486581]">
+        <div className="rounded-2xl bg-white/70 p-8 text-[#737373]">
           Loading Vision Assistant…
         </div>
       }

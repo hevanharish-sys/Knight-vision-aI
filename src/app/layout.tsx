@@ -31,6 +31,11 @@ export const metadata: Metadata = {
   description:
     "AI that empowers visually impaired and deaf individuals to communicate confidently with healthcare professionals.",
   applicationName: "Knight Vision AI",
+  icons: {
+    icon: [{ url: "/image.png?v=20260806b", type: "image/png" }],
+    apple: [{ url: "/image.png?v=20260806b" }],
+    shortcut: ["/image.png?v=20260806b"],
+  },
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",
@@ -47,8 +52,8 @@ export const viewport: Viewport = {
   maximumScale: 5,
   viewportFit: "cover",
   themeColor: [
-    { media: "(prefers-color-scheme: light)", color: "#eef6f8" },
-    { media: "(prefers-color-scheme: dark)", color: "#0b1f33" },
+    { media: "(prefers-color-scheme: light)", color: "#ffffff" },
+    { media: "(prefers-color-scheme: dark)", color: "#0A0A0A" },
   ],
 };
 

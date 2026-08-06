@@ -129,39 +129,39 @@ export function GuideAssistant() {
           id="knight-vision-guide-panel"
           role="complementary"
           aria-label="Knight Vision accessibility guide"
-          className={`fixed bottom-24 right-5 z-50 w-[min(100%-2rem,400px)] lb-panel border-[#0f8b8d]/30 p-5 shadow-2xl ${
+          className={`fixed bottom-24 right-5 z-50 w-[min(100%-2rem,400px)] lb-panel border-[#5E0ED7]/30 p-5 shadow-2xl ${
             largeUi ? "text-lg" : ""
           }`}
         >
           <div className="flex items-start justify-between gap-3">
             <div>
-              <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[#0f8b8d]">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[#5E0ED7]">
                 Knight Vision Guide · {activeProfile}
               </p>
-              <h2 className={`lb-display mt-1 text-[#0b1f33] ${largeUi ? "text-3xl" : "text-2xl"}`}>
+              <h2 className={`lb-display mt-1 text-[#0A0A0A] ${largeUi ? "text-3xl" : "text-2xl"}`}>
                 {current.title}
               </h2>
             </div>
             {mode === "tour" ? (
-              <span className="rounded-full bg-[#d7f3f3] px-2 py-1 text-xs font-semibold text-[#0b1f33]">
+              <span className="rounded-full bg-[#EDE9FE] px-2 py-1 text-xs font-semibold text-[#0A0A0A]">
                 {stepIndex + 1}/{tour.length}
               </span>
             ) : (
-              <span className="rounded-full bg-[#0b1f33] px-2 py-1 text-xs font-semibold text-white">
+              <span className="rounded-full bg-[#0A0A0A] px-2 py-1 text-xs font-semibold text-white">
                 Tip
               </span>
             )}
           </div>
 
           <p
-            className={`mt-3 leading-relaxed text-[#486581] ${largeUi ? "text-base" : "text-sm"}`}
+            className={`mt-3 leading-relaxed text-[#737373] ${largeUi ? "text-base" : "text-sm"}`}
             aria-live="polite"
           >
             {current.body}
           </p>
 
           {mode === "tip" ? (
-            <p className="mt-3 rounded-xl bg-[#d7f3f3]/70 px-3 py-2 text-xs font-semibold text-[#0b1f33]">
+            <p className="mt-3 rounded-xl bg-[#EDE9FE]/70 px-3 py-2 text-xs font-semibold text-[#0A0A0A]">
               Recommended next:{" "}
               {welcome.priorities
                 .slice(0, 3)
@@ -226,23 +226,23 @@ export function GuideAssistant() {
             )}
           </div>
 
-          <div className="mt-3 flex flex-wrap items-center gap-3 border-t border-black/5 pt-3 text-xs text-[#486581]">
+          <div className="mt-3 flex flex-wrap items-center gap-3 border-t border-black/5 pt-3 text-xs text-[#737373]">
             {!visualOnly ? (
               <button
                 type="button"
-                className="font-semibold text-[#0f8b8d]"
+                className="font-semibold text-[#5E0ED7]"
                 onClick={toggleMute}
               >
                 {muted ? "Unmute voice guide" : "Mute voice guide"}
               </button>
             ) : (
-              <span className="font-semibold text-[#0b1f33]">
+              <span className="font-semibold text-[#0A0A0A]">
                 Visual guide on (voice off in Captions & Sign mode)
               </span>
             )}
             <button
               type="button"
-              className="font-semibold text-[#486581]"
+              className="font-semibold text-[#737373]"
               onClick={() => setOpenPanel(false)}
             >
               Minimize

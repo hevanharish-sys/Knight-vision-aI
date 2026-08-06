@@ -2,37 +2,39 @@ import Image from "next/image";
 import Link from "next/link";
 
 type BrandLogoProps = {
-  /** Compact KV wordmark for headers; full knight emblem for brand moments */
-  variant?: "wordmark" | "emblem";
+  /** Kept for call-site compatibility */
+  variant?: "emblem" | "wordmark" | "mark";
   /** Pass `null` to render without a link */
   href?: string | null;
   className?: string;
-  /** Emblem / wordmark height in px */
+  /** Logo height in px */
   height?: number;
   priority?: boolean;
 };
 
+/** Site logo — public/image.png (cache-busted) */
+const LOGO_SRC = "/image.png?v=20260806b";
+const LOGO_ASPECT = 641 / 547;
+
 export function BrandLogo({
-  variant = "wordmark",
+  variant: _variant = "emblem",
   href = "/",
   className = "",
-  height = 36,
+  height = 44,
   priority = false,
 }: BrandLogoProps) {
-  const isEmblem = variant === "emblem";
-  const src = isEmblem
-    ? "/knight-vision-logo.png"
-    : "/knight-vision-wordmark.png";
-  const width = isEmblem ? Math.round(height * 1.05) : Math.round(height * 4.2);
+  void _variant;
+  const width = Math.round(height * LOGO_ASPECT);
 
   const img = (
     <Image
-      src={src}
-      alt="Knight Vision AI — Your AI Eyes to the World"
+      src={LOGO_SRC}
+      alt="Knight Vision AI"
       width={width}
       height={height}
       priority={priority}
-      className={`object-contain ${isEmblem ? "rounded-xl" : ""} ${className}`}
+      unoptimized
+      className={`object-contain ${className}`}
       style={{ height, width: "auto", maxWidth: "100%" }}
       sizes={`${width}px`}
     />

@@ -151,47 +151,47 @@ export default function TranslatePage() {
     <div className="space-y-6">
       <header className="lb-rise flex flex-wrap items-end justify-between gap-4">
         <div>
-          <p className="text-[11px] font-bold uppercase tracking-[0.22em] text-[#0f8b8d]">
+          <p className="text-[11px] font-bold uppercase tracking-[0.22em] text-[#5E0ED7]">
             Speak · Translate · Hear
           </p>
-          <h1 className="lb-display mt-1 text-4xl text-[#0b1f33] md:text-5xl">
+          <h1 className="lb-display mt-1 text-4xl text-[#0A0A0A] md:text-5xl">
             Live AI Translator
           </h1>
-          <p className="mt-2 max-w-xl text-[15px] leading-relaxed text-[#486581]">
+          <p className="mt-2 max-w-xl text-[15px] leading-relaxed text-[#737373]">
             Type or dictate in one language — get a spoken reply in another, built for
             clinics and counters.
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <span className="rounded-full bg-[#0b1f33] px-3 py-1.5 text-xs font-bold text-white">
+          <span className="rounded-full bg-[#0A0A0A] px-3 py-1.5 text-xs font-bold text-white">
             {fromShort}
           </span>
           <span
-            className={`text-sm font-bold text-[#0f8b8d] transition-transform duration-300 ${
+            className={`text-sm font-bold text-[#5E0ED7] transition-transform duration-300 ${
               swapSpin ? "rotate-180 scale-110" : ""
             }`}
           >
             →
           </span>
-          <span className="rounded-full bg-[#0f8b8d] px-3 py-1.5 text-xs font-bold text-white">
+          <span className="rounded-full bg-[#5E0ED7] px-3 py-1.5 text-xs font-bold text-white">
             {toShort}
           </span>
         </div>
       </header>
 
       {/* Language bridge */}
-      <section className="lb-slide-up relative overflow-hidden rounded-[1.75rem] border border-white/70 bg-white/80 p-5 shadow-[0_20px_50px_rgba(11,31,51,0.08)] backdrop-blur-xl md:p-6">
-        <div className="pointer-events-none absolute -left-12 top-0 h-36 w-36 rounded-full bg-[#19b5b8]/18 blur-3xl lb-orb" />
+      <section className="lb-slide-up relative overflow-hidden rounded-[1.75rem] border border-white/70 bg-white/80 p-5 shadow-[0_20px_50px_rgba(10,10,10,0.08)] backdrop-blur-xl md:p-6">
+        <div className="pointer-events-none absolute -left-12 top-0 h-36 w-36 rounded-full bg-[#7C3AED]/18 blur-3xl lb-orb" />
         <div
-          className="pointer-events-none absolute -right-10 bottom-0 h-40 w-40 rounded-full bg-[#0b1f33]/10 blur-3xl lb-orb"
+          className="pointer-events-none absolute -right-10 bottom-0 h-40 w-40 rounded-full bg-[#0A0A0A]/10 blur-3xl lb-orb"
           style={{ animationDelay: "1s" }}
         />
 
         <div className="relative grid items-end gap-3 sm:grid-cols-[1fr_auto_1fr]">
-          <label className="grid gap-1.5 text-sm font-semibold text-[#0b1f33]">
+          <label className="grid gap-1.5 text-sm font-semibold text-[#0A0A0A]">
             From
             <select
-              className="min-h-12 rounded-2xl border border-black/10 bg-white px-3 py-2 font-normal outline-none ring-[#19b5b8] transition focus:ring-2"
+              className="min-h-12 rounded-2xl border border-black/10 bg-white px-3 py-2 font-normal outline-none ring-[#7C3AED] transition focus:ring-2"
               value={sourceLang}
               onChange={(e) => setSourceLang(e.target.value)}
             >
@@ -205,7 +205,7 @@ export default function TranslatePage() {
             type="button"
             aria-label="Swap languages"
             onClick={swapLanguages}
-            className={`mb-0.5 grid h-12 w-12 place-items-center rounded-full bg-[#0b1f33] text-lg font-bold text-white shadow-lg transition hover:-translate-y-0.5 ${
+            className={`mb-0.5 grid h-12 w-12 place-items-center rounded-full bg-[#0A0A0A] text-lg font-bold text-white shadow-lg transition hover:-translate-y-0.5 ${
               swapSpin ? "rotate-180" : ""
             }`}
             style={{ transition: "transform 400ms cubic-bezier(0.22,1,0.36,1)" }}
@@ -213,10 +213,10 @@ export default function TranslatePage() {
             ⇄
           </button>
 
-          <label className="grid gap-1.5 text-sm font-semibold text-[#0b1f33]">
+          <label className="grid gap-1.5 text-sm font-semibold text-[#0A0A0A]">
             To
             <select
-              className="min-h-12 rounded-2xl border border-black/10 bg-white px-3 py-2 font-normal outline-none ring-[#19b5b8] transition focus:ring-2"
+              className="min-h-12 rounded-2xl border border-black/10 bg-white px-3 py-2 font-normal outline-none ring-[#7C3AED] transition focus:ring-2"
               value={targetLang}
               onChange={(e) => setTargetLang(e.target.value)}
             >
@@ -231,21 +231,21 @@ export default function TranslatePage() {
       {/* Input / output stage */}
       <div className="grid gap-4 lg:grid-cols-2">
         <section
-          className="lb-slide-up flex min-h-[280px] flex-col overflow-hidden rounded-[1.75rem] border border-black/5 bg-[#0b1f33] p-5 text-white shadow-[0_20px_40px_rgba(11,31,51,0.18)]"
+          className="lb-slide-up flex min-h-[280px] flex-col overflow-hidden rounded-[1.75rem] border border-black/5 bg-[#0A0A0A] p-5 text-white shadow-[0_20px_40px_rgba(10,10,10,0.18)]"
           style={{ animationDelay: "80ms" }}
         >
           <div className="flex items-center justify-between gap-2">
-            <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-[#7ef0f2]">
+            <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-[#DDD6FE]">
               You say · {sourceLang}
             </p>
             {listening ? (
-              <span className="lb-listen-glow rounded-full bg-[#0f8b8d] px-2.5 py-1 text-[10px] font-bold uppercase">
+              <span className="lb-listen-glow rounded-full bg-[#5E0ED7] px-2.5 py-1 text-[10px] font-bold uppercase">
                 Listening
               </span>
             ) : null}
           </div>
           <textarea
-            className="mt-3 min-h-[160px] flex-1 resize-none rounded-2xl border border-white/10 bg-white/5 p-4 text-lg font-semibold leading-relaxed text-white placeholder:text-white/40 outline-none focus:border-[#19b5b8]"
+            className="mt-3 min-h-[160px] flex-1 resize-none rounded-2xl border border-white/10 bg-white/5 p-4 text-lg font-semibold leading-relaxed text-white placeholder:text-white/40 outline-none focus:border-[#7C3AED]"
             placeholder="Type or dictate a sentence…"
             value={input}
             onChange={(e) => setInput(e.target.value)}
@@ -268,28 +268,28 @@ export default function TranslatePage() {
         </section>
 
         <section
-          className="lb-slide-up relative flex min-h-[280px] flex-col overflow-hidden rounded-[1.75rem] border border-white/70 bg-white/85 p-5 shadow-[0_20px_40px_rgba(11,31,51,0.08)] backdrop-blur-xl"
+          className="lb-slide-up relative flex min-h-[280px] flex-col overflow-hidden rounded-[1.75rem] border border-white/70 bg-white/85 p-5 shadow-[0_20px_40px_rgba(10,10,10,0.08)] backdrop-blur-xl"
           style={{ animationDelay: "140ms" }}
           aria-live="polite"
         >
-          <div className="pointer-events-none absolute -right-8 -top-8 h-28 w-28 rounded-full bg-[#19b5b8]/15 blur-2xl lb-orb" />
+          <div className="pointer-events-none absolute -right-8 -top-8 h-28 w-28 rounded-full bg-[#7C3AED]/15 blur-2xl lb-orb" />
           <div className="relative flex items-center justify-between gap-2">
-            <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-[#0f8b8d]">
+            <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-[#5E0ED7]">
               Translation · {targetLang}
             </p>
             {busy ? (
-              <span className="rounded-full bg-[#d7f3f3] px-2.5 py-1 text-[10px] font-bold text-[#0f8b8d]">
+              <span className="rounded-full bg-[#EDE9FE] px-2.5 py-1 text-[10px] font-bold text-[#5E0ED7]">
                 Working…
               </span>
             ) : output ? (
-              <span className="rounded-full bg-[#0b1f33] px-2.5 py-1 text-[10px] font-bold text-white">
+              <span className="rounded-full bg-[#0A0A0A] px-2.5 py-1 text-[10px] font-bold text-white">
                 Ready
               </span>
             ) : null}
           </div>
           <p
             key={outKey}
-            className="lb-caption-in relative mt-4 flex-1 text-[clamp(1.35rem,2.6vw,1.9rem)] font-bold leading-snug tracking-tight text-[#0b1f33]"
+            className="lb-caption-in relative mt-4 flex-1 text-[clamp(1.35rem,2.6vw,1.9rem)] font-bold leading-snug tracking-tight text-[#0A0A0A]"
           >
             {output || "Your translation will appear here."}
           </p>
@@ -340,7 +340,7 @@ export default function TranslatePage() {
       </div>
 
       {notice ? (
-        <p className="lb-slide-up rounded-2xl border border-[#0f8b8d]/25 bg-[#d7f3f3]/70 px-4 py-3 text-sm text-[#0b1f33]">
+        <p className="lb-slide-up rounded-2xl border border-[#5E0ED7]/25 bg-[#EDE9FE]/70 px-4 py-3 text-sm text-[#0A0A0A]">
           {notice}
         </p>
       ) : null}

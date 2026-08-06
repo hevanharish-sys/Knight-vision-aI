@@ -247,7 +247,7 @@ function BlindEasyAssistant({
         className="relative flex flex-1 flex-col items-center justify-center overflow-hidden rounded-[2rem] bg-[#050e16] px-6 py-10 text-white shadow-[0_30px_80px_rgba(5,14,22,0.55)]"
         aria-label="Voice Guide Easy Mode assistant"
       >
-        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_50%_40%,rgba(25,181,184,0.18),transparent_55%)]" />
+        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_50%_40%,rgba(124,58,237,0.18),transparent_55%)]" />
 
         <AssistantOrb mode={orbMode} size={180} />
 
@@ -266,7 +266,7 @@ function BlindEasyAssistant({
                 className={`rounded-2xl px-4 py-3 text-lg leading-relaxed ${
                   t.role === "assistant"
                     ? "bg-white/10 text-white"
-                    : "ml-6 bg-[#19b5b8]/25 text-[#e8fffe]"
+                    : "ml-6 bg-[#7C3AED]/25 text-[#e8fffe]"
                 }`}
               >
                 <span className="sr-only">
@@ -278,7 +278,7 @@ function BlindEasyAssistant({
           )}
           {loop === "listening" ? (
             <p
-              className="text-center text-2xl font-bold tracking-[0.35em] text-[#7ef0f2]"
+              className="text-center text-2xl font-bold tracking-[0.35em] text-[#DDD6FE]"
               aria-hidden
             >
               · · ·
@@ -289,7 +289,7 @@ function BlindEasyAssistant({
         <div className="relative mt-8 flex w-full max-w-lg flex-wrap justify-center gap-3">
           <button
             type="button"
-            className="lb-btn min-h-14 min-w-[9rem] bg-white text-lg font-bold text-[#0b1f33]"
+            className="lb-btn min-h-14 min-w-[9rem] bg-white text-lg font-bold text-[#0A0A0A]"
             onClick={() => {
               stopSpeaking();
               runIdRef.current += 1;
@@ -340,7 +340,7 @@ function BlindEasyAssistant({
             className={`min-h-16 rounded-2xl px-5 py-4 text-left text-xl font-bold transition active:scale-[0.99] ${
               action.id === "sos"
                 ? "bg-[#e4572e] text-white"
-                : "bg-[#0b1f33] text-white"
+                : "bg-[#0A0A0A] text-white"
             }`}
             aria-label={action.label}
           >
@@ -385,8 +385,8 @@ function LowVisionEasy({ router }: { router: ReturnType<typeof useRouter> }) {
   return (
     <div className="easy-mode space-y-4">
       <header className="lb-panel p-5">
-        <h1 className="lb-display text-4xl text-[#0b1f33]">Easy Mode</h1>
-        <p className="mt-2 text-lg font-semibold text-[#0b1f33]" aria-live="polite">
+        <h1 className="lb-display text-4xl text-[#0A0A0A]">Easy Mode</h1>
+        <p className="mt-2 text-lg font-semibold text-[#0A0A0A]" aria-live="polite">
           {status}
         </p>
       </header>

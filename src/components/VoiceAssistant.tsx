@@ -477,14 +477,14 @@ export function VoiceAssistant({ autoStart = true }: Props) {
 
   return (
     <section
-      className={`relative overflow-hidden rounded-[2rem] border border-white/10 bg-[#071825] text-white shadow-[0_30px_70px_rgba(7,24,37,0.45)] p-6 sm:p-8 ${
+      className={`relative overflow-hidden rounded-[2rem] border border-white/10 bg-[#0A0A0A] text-white shadow-[0_30px_70px_rgba(10,10,10,0.45)] p-6 sm:p-8 ${
         appeared ? "lb-assistant-in" : "lb-assistant-wait"
       }`}
       aria-label="Knight Vision voice assistant"
     >
-      <div className="pointer-events-none absolute -left-10 -top-10 h-40 w-40 rounded-full bg-[#19b5b8]/25 blur-3xl lb-orb" />
+      <div className="pointer-events-none absolute -left-10 -top-10 h-40 w-40 rounded-full bg-[#7C3AED]/25 blur-3xl lb-orb" />
       <div
-        className="pointer-events-none absolute -bottom-16 right-0 h-48 w-48 rounded-full bg-[#0f8b8d]/20 blur-3xl lb-orb"
+        className="pointer-events-none absolute -bottom-16 right-0 h-48 w-48 rounded-full bg-[#5E0ED7]/20 blur-3xl lb-orb"
         style={{ animationDelay: "1s" }}
       />
 
@@ -507,7 +507,7 @@ export function VoiceAssistant({ autoStart = true }: Props) {
           </div>
 
           {heard ? (
-            <p className="mt-2 text-sm text-[#7ef0f2]">
+            <p className="mt-2 text-sm text-[#DDD6FE]">
               Caught: <span className="font-semibold text-white">{heard}</span>
             </p>
           ) : null}
@@ -530,7 +530,7 @@ export function VoiceAssistant({ autoStart = true }: Props) {
             <div className="mt-4 grid grid-cols-2 gap-3">
               <button
                 type="button"
-                className="min-h-20 rounded-2xl bg-[#19b5b8] text-2xl font-black text-[#071825] shadow-lg transition active:scale-[0.98]"
+                className="min-h-20 rounded-2xl bg-[#7C3AED] text-2xl font-black text-white shadow-lg transition active:scale-[0.98]"
                 onClick={() => submitTap("one")}
               >
                 1
@@ -540,7 +540,7 @@ export function VoiceAssistant({ autoStart = true }: Props) {
               </button>
               <button
                 type="button"
-                className="min-h-20 rounded-2xl bg-white text-2xl font-black text-[#071825] shadow-lg transition active:scale-[0.98]"
+                className="min-h-20 rounded-2xl bg-white text-2xl font-black text-[#0A0A0A] shadow-lg transition active:scale-[0.98]"
                 onClick={() => submitTap("two")}
               >
                 2
@@ -555,7 +555,7 @@ export function VoiceAssistant({ autoStart = true }: Props) {
             <div className="mt-4 grid grid-cols-2 gap-3">
               <button
                 type="button"
-                className="min-h-14 rounded-2xl bg-[#19b5b8] text-lg font-black text-[#071825]"
+                className="min-h-14 rounded-2xl bg-[#7C3AED] text-lg font-black text-white"
                 onClick={() => submitTap("yes")}
               >
                 Yes
@@ -577,7 +577,7 @@ export function VoiceAssistant({ autoStart = true }: Props) {
                   key={opt.id}
                   type="button"
                   onClick={() => submitTap(String(opt.number))}
-                  className="min-h-14 rounded-xl bg-white/10 text-lg font-black text-white transition hover:bg-[#19b5b8] hover:text-[#071825]"
+                  className="min-h-14 rounded-xl bg-white/10 text-lg font-black text-white transition hover:bg-[#7C3AED] hover:text-white"
                   aria-label={`Say ${opt.number} ${opt.label}`}
                 >
                   {opt.number}
@@ -587,8 +587,8 @@ export function VoiceAssistant({ autoStart = true }: Props) {
           ) : null}
 
           {phase === "guide" && guideSteps[guideIndex] ? (
-            <div className="mt-4 rounded-2xl bg-[#19b5b8]/15 p-4">
-              <p className="text-[11px] font-bold uppercase tracking-wide text-[#7ef0f2]">
+            <div className="mt-4 rounded-2xl bg-[#7C3AED]/15 p-4">
+              <p className="text-[11px] font-bold uppercase tracking-wide text-[#DDD6FE]">
                 Guide {guideIndex + 1}/{guideSteps.length}
               </p>
               <p className="lb-display mt-1 text-xl">
@@ -600,7 +600,7 @@ export function VoiceAssistant({ autoStart = true }: Props) {
               {guideSteps[guideIndex].href ? (
                 <Link
                   href={guideSteps[guideIndex].href!}
-                  className="mt-3 inline-flex text-sm font-bold text-[#7ef0f2]"
+                  className="mt-3 inline-flex text-sm font-bold text-[#DDD6FE]"
                 >
                   Open this step →
                 </Link>
@@ -657,7 +657,7 @@ export function VoiceAssistant({ autoStart = true }: Props) {
               <label className="grid gap-1 text-xs font-bold uppercase tracking-wide text-white/60">
                 Name
                 <input
-                  className="rounded-xl border border-white/15 bg-white/10 px-3 py-2 text-sm font-semibold text-white outline-none focus:border-[#19b5b8]"
+                  className="rounded-xl border border-white/15 bg-white/10 px-3 py-2 text-sm font-semibold text-white outline-none focus:border-[#7C3AED]"
                   value={pendingName}
                   onChange={(e) => setPendingName(e.target.value)}
                   placeholder="Your name"
@@ -666,7 +666,7 @@ export function VoiceAssistant({ autoStart = true }: Props) {
               <label className="grid gap-1 text-xs font-bold uppercase tracking-wide text-white/60">
                 4-digit PIN
                 <input
-                  className="rounded-xl border border-white/15 bg-white/10 px-3 py-2 text-sm font-semibold text-white outline-none focus:border-[#19b5b8]"
+                  className="rounded-xl border border-white/15 bg-white/10 px-3 py-2 text-sm font-semibold text-white outline-none focus:border-[#7C3AED]"
                   value={pendingPin}
                   onChange={(e) =>
                     setPendingPin(e.target.value.replace(/\D/g, "").slice(0, 4))
@@ -732,7 +732,7 @@ export function VoiceAssistant({ autoStart = true }: Props) {
 
           {showProfiles ? (
             <div className="mt-5">
-              <p className="mb-2 text-xs font-bold uppercase tracking-[0.16em] text-[#7ef0f2]">
+              <p className="mb-2 text-xs font-bold uppercase tracking-[0.16em] text-[#DDD6FE]">
                 Or tap a comfort mode
               </p>
               <div className="grid gap-2 sm:grid-cols-2">
@@ -743,7 +743,7 @@ export function VoiceAssistant({ autoStart = true }: Props) {
                     onClick={() => pickProfile(opt.id)}
                     className="rounded-xl border border-white/10 bg-white/5 px-3 py-3 text-left transition hover:bg-white/10"
                   >
-                    <span className="text-xs font-bold text-[#7ef0f2]">
+                    <span className="text-xs font-bold text-[#DDD6FE]">
                       Say {opt.number}
                     </span>
                     <span className="mt-0.5 block text-sm font-bold">

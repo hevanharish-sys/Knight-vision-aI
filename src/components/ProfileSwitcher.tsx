@@ -12,13 +12,13 @@ const PROFILE_META: Record<
   AccessibilityProfile,
   { icon: string; hint: string; accent: string }
 > = {
-  blind: { icon: "◎", hint: "Listen & speak", accent: "bg-[#0b1f33]" },
-  deaf: { icon: "✋", hint: "See & sign", accent: "bg-[#0f8b8d]" },
-  speech: { icon: "⌨", hint: "Type & sign", accent: "bg-[#1d4e89]" },
-  "low-vision": { icon: "◈", hint: "Bigger UI", accent: "bg-[#0b1f33]" },
-  senior: { icon: "＋", hint: "Easy pace", accent: "bg-[#486581]" },
-  autism: { icon: "◻", hint: "Steady UI", accent: "bg-[#2a9d8f]" },
-  none: { icon: "◆", hint: "Everything", accent: "bg-[#0f8b8d]" },
+  blind: { icon: "◎", hint: "Listen & speak", accent: "bg-[#0A0A0A]" },
+  deaf: { icon: "✋", hint: "See & sign", accent: "bg-[#5E0ED7]" },
+  speech: { icon: "⌨", hint: "Type & sign", accent: "bg-[#4C1D95]" },
+  "low-vision": { icon: "◈", hint: "Bigger UI", accent: "bg-[#0A0A0A]" },
+  senior: { icon: "＋", hint: "Easy pace", accent: "bg-[#737373]" },
+  autism: { icon: "◻", hint: "Steady UI", accent: "bg-[#7C3AED]" },
+  none: { icon: "◆", hint: "Everything", accent: "bg-[#5E0ED7]" },
 };
 
 export function ProfileSwitcher() {
@@ -92,15 +92,15 @@ export function ProfileSwitcher() {
           {meta.icon}
         </span>
         <span className="hidden text-left sm:block">
-          <span className="block text-[10px] font-bold uppercase tracking-[0.14em] text-[#486581]">
+          <span className="block text-[10px] font-bold uppercase tracking-[0.14em] text-[#737373]">
             Mode
           </span>
-          <span className="block text-sm font-bold leading-none text-[#0b1f33]">
+          <span className="block text-sm font-bold leading-none text-[#0A0A0A]">
             {current.label}
           </span>
         </span>
         <span
-          className={`ml-0.5 text-[#486581] transition duration-300 sm:ml-1 ${
+          className={`ml-0.5 text-[#737373] transition duration-300 sm:ml-1 ${
             open ? "rotate-180" : ""
           }`}
           aria-hidden
@@ -114,9 +114,9 @@ export function ProfileSwitcher() {
           id={listId}
           role="listbox"
           aria-label="Comfort mode"
-          className="lb-menu-pop absolute right-0 z-50 mt-2 w-[min(92vw,320px)] overflow-hidden rounded-2xl border border-black/8 bg-white/95 p-1.5 shadow-[0_24px_60px_rgba(11,31,51,0.22)] backdrop-blur-xl"
+          className="lb-menu-pop absolute right-0 z-50 mt-2 w-[min(92vw,320px)] overflow-hidden rounded-2xl border border-black/8 bg-white/95 p-1.5 shadow-[0_24px_60px_rgba(10,10,10,0.22)] backdrop-blur-xl"
         >
-          <p className="px-3 pb-1.5 pt-2 text-[10px] font-bold uppercase tracking-[0.16em] text-[#0f8b8d]">
+          <p className="px-3 pb-1.5 pt-2 text-[10px] font-bold uppercase tracking-[0.16em] text-[#5E0ED7]">
             Choose your comfort mode
           </p>
           {PROFILE_OPTIONS.map((opt, i) => {
@@ -131,14 +131,14 @@ export function ProfileSwitcher() {
                 onClick={() => pick(opt.id)}
                 className={`lb-menu-item flex w-full items-center gap-3 rounded-xl px-2.5 py-2.5 text-left transition ${
                   selected
-                    ? "bg-[#0b1f33] text-white"
-                    : "text-[#0b1f33] hover:bg-[#eef6f8]"
+                    ? "bg-[#0A0A0A] text-white"
+                    : "text-[#0A0A0A] hover:bg-[#FAFAFA]"
                 }`}
                 style={{ animationDelay: `${i * 35}ms` }}
               >
                 <span
                   className={`grid h-9 w-9 shrink-0 place-items-center rounded-xl text-sm font-bold ${
-                    selected ? "bg-white/15 text-[#7ef0f2]" : `${m.accent} text-white`
+                    selected ? "bg-white/15 text-[#DDD6FE]" : `${m.accent} text-white`
                   }`}
                   aria-hidden
                 >
@@ -149,7 +149,7 @@ export function ProfileSwitcher() {
                     <span className="text-sm font-bold">{opt.label}</span>
                     <span
                       className={`text-[10px] font-bold uppercase tracking-wide ${
-                        selected ? "text-[#7ef0f2]" : "text-[#0f8b8d]"
+                        selected ? "text-[#DDD6FE]" : "text-[#5E0ED7]"
                       }`}
                     >
                       {m.hint}
@@ -157,14 +157,14 @@ export function ProfileSwitcher() {
                   </span>
                   <span
                     className={`mt-0.5 block text-xs leading-snug ${
-                      selected ? "text-white/70" : "text-[#486581]"
+                      selected ? "text-white/70" : "text-[#737373]"
                     }`}
                   >
                     {opt.description}
                   </span>
                 </span>
                 {selected ? (
-                  <span className="shrink-0 text-[#7ef0f2]" aria-hidden>
+                  <span className="shrink-0 text-[#DDD6FE]" aria-hidden>
                     ✓
                   </span>
                 ) : null}
@@ -176,7 +176,7 @@ export function ProfileSwitcher() {
 
       {toast ? (
         <div
-          className="lb-toast-in pointer-events-none absolute right-0 top-[calc(100%+0.6rem)] z-50 whitespace-nowrap rounded-full bg-[#0b1f33] px-3.5 py-2 text-xs font-bold text-white shadow-lg"
+          className="lb-toast-in pointer-events-none absolute right-0 top-[calc(100%+0.6rem)] z-50 whitespace-nowrap rounded-full bg-[#0A0A0A] px-3.5 py-2 text-xs font-bold text-white shadow-lg"
           role="status"
         >
           {toast}

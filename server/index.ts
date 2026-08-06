@@ -180,32 +180,61 @@ app.post("/api/vision/describe", async (req, res) => {
     }
 
     const { mimeType, data } = parseDataUrl(image);
-    const description = await tryGenerateWithGemini({
+    const raw = await tryGenerateWithGemini({
       systemInstruction: `You are the Knight Vision AI scene assistant for people who are blind or have low vision.
-Describe the camera scene in 2-4 short spoken sentences.
-Use the on-device detector list when provided — confirm objects, add left/right/near, hazards, doors, stairs, signs, readable text/OCR, medicine labels, currency if visible.
-Be concrete and calm. No markdown. Never refuse — give the best short description you can.`,
+Look carefully for everyday objects, especially: headphones, earbuds, microphone/mic, watch/wristwatch, ID card/badge, table/desk, chair, sofa, laptop, phone, keyboard, bottle, cup, glasses, bag, keys, door, stairs, people.
+Describe the scene in 2-4 short spoken sentences with left/right/near when useful.
+Also list every clear object you see.
+Return ONLY valid JSON with keys:
+- description (string, spoken sentences)
+- objects (array of short lowercase names, e.g. "headphones", "chair", "id card", "table", "microphone", "watch")
+No markdown. Never refuse.`,
       parts: [
         {
           text: `On-device detections: ${detectorSummary || "none"}.
-Describe everything useful for safe navigation and reading from the image.`,
+Name headphones, mic, watch, ID card, table, chair and other visible items if present. JSON only.`,
         },
         { inlineData: { mimeType, data } },
       ],
     });
 
-    if (!description) {
+    if (!raw) {
       return res.json({
         ok: false,
         description: null,
+        objects: [],
         source: "quota",
         error: null,
       });
     }
 
+    let description = raw;
+    let objects: string[] = [];
+    try {
+      const cleaned = raw
+        .replace(/^```json\s*/i, "")
+        .replace(/^```\s*/i, "")
+        .replace(/```$/i, "")
+        .trim();
+      const parsed = JSON.parse(cleaned) as {
+        description?: string;
+        objects?: unknown;
+      };
+      description = String(parsed.description || cleaned).trim();
+      objects = Array.isArray(parsed.objects)
+        ? parsed.objects
+            .map((o) => String(o).trim().toLowerCase())
+            .filter(Boolean)
+            .slice(0, 20)
+        : [];
+    } catch {
+      description = raw.slice(0, 600);
+    }
+
     return res.json({
       ok: true,
       description,
+      objects,
       source: "gemini",
       error: null,
     });
@@ -213,6 +242,7 @@ Describe everything useful for safe navigation and reading from the image.`,
     return res.json({
       ok: false,
       description: null,
+      objects: [],
       source: "error",
       error: null,
     });

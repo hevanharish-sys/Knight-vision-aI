@@ -45,7 +45,7 @@ type ChatMessage = {
 };
 
 const LANG_KEY = "knight-vision-sign-language";
-const HAND_COLORS = ["#19b5b8", "#e4572e"]; // left-ish / right-ish
+const HAND_COLORS = ["#7C3AED", "#e4572e"]; // left-ish / right-ish
 
 export default function SignPage() {
   const cameraRef = useRef<CameraHandle>(null);
@@ -520,17 +520,17 @@ export default function SignPage() {
       {/* Compact top bar */}
       <div className="lb-rise flex flex-wrap items-center justify-between gap-3">
         <div className="min-w-0">
-          <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-[#0f8b8d]">
+          <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-[#5E0ED7]">
             Sign ↔ Doctor
           </p>
-          <h1 className="lb-display truncate text-2xl text-[#0b1f33] sm:text-3xl">
+          <h1 className="lb-display truncate text-2xl text-[#0A0A0A] sm:text-3xl">
             {selected.name}
           </h1>
         </div>
         <div className="flex flex-wrap items-center gap-2">
           <select
             aria-label="Region"
-            className="min-h-10 rounded-full border border-black/10 bg-white px-3 text-sm font-semibold text-[#0b1f33]"
+            className="min-h-10 rounded-full border border-black/10 bg-white px-3 text-sm font-semibold text-[#0A0A0A]"
             value={regionFilter}
             onChange={(e) => setRegionFilter(e.target.value)}
           >
@@ -543,7 +543,7 @@ export default function SignPage() {
           </select>
           <select
             aria-label="Sign language"
-            className="min-h-10 max-w-[220px] rounded-full border border-black/10 bg-white px-3 text-sm font-semibold text-[#0b1f33]"
+            className="min-h-10 max-w-[220px] rounded-full border border-black/10 bg-white px-3 text-sm font-semibold text-[#0A0A0A]"
             value={langId}
             onChange={(e) => {
               setLangId(e.target.value);
@@ -558,7 +558,7 @@ export default function SignPage() {
           </select>
           <span
             className={`rounded-full px-3 py-2 text-xs font-bold ${
-              ready ? "bg-[#d7f3f3] text-[#0f8b8d]" : "bg-black/5 text-[#486581]"
+              ready ? "bg-[#EDE9FE] text-[#5E0ED7]" : "bg-black/5 text-[#737373]"
             }`}
           >
             {ready ? "Tracking ready" : "Loading…"}
@@ -568,7 +568,7 @@ export default function SignPage() {
 
       {/* Camera + live chat side by side */}
       <div className="grid gap-3 lg:grid-cols-[minmax(0,1.65fr)_minmax(280px,1fr)] lg:items-stretch">
-        <section className="relative overflow-hidden rounded-[1.5rem] bg-[#0b1f33] shadow-[0_28px_70px_rgba(11,31,51,0.28)]">
+        <section className="relative overflow-hidden rounded-[1.5rem] bg-[#0A0A0A] shadow-[0_28px_70px_rgba(10,10,10,0.28)]">
           <div className="relative aspect-[16/10] min-h-[46vh] w-full sm:min-h-[52vh] lg:min-h-full lg:aspect-auto lg:h-full lg:min-h-[560px]">
             <Camera
               ref={cameraRef}
@@ -595,7 +595,7 @@ export default function SignPage() {
                     ? "1 hand"
                     : "2 hands"}
               </span>
-              <span className="rounded-full bg-[#19b5b8] px-3 py-1.5 text-xs font-bold text-white">
+              <span className="rounded-full bg-[#7C3AED] px-3 py-1.5 text-xs font-bold text-white">
                 L
               </span>
               <span className="rounded-full bg-[#e4572e] px-3 py-1.5 text-xs font-bold text-white">
@@ -607,13 +607,13 @@ export default function SignPage() {
                 </span>
               ) : null}
               {busy ? (
-                <span className="rounded-full bg-white/95 px-3 py-1.5 text-xs font-bold text-[#0b1f33]">
+                <span className="rounded-full bg-white/95 px-3 py-1.5 text-xs font-bold text-[#0A0A0A]">
                   Translating…
                 </span>
               ) : null}
             </div>
 
-            <div className="absolute inset-x-0 bottom-0 z-20 bg-gradient-to-t from-[#0b1f33] via-[#0b1f33]/75 to-transparent px-3 pb-3 pt-20 sm:px-5 sm:pb-5">
+            <div className="absolute inset-x-0 bottom-0 z-20 bg-gradient-to-t from-[#0A0A0A] via-[#0A0A0A]/75 to-transparent px-3 pb-3 pt-20 sm:px-5 sm:pb-5">
               <p className="mb-3 text-sm font-semibold text-white/90" aria-live="polite">
                 {status}
               </p>
@@ -641,7 +641,7 @@ export default function SignPage() {
                 </button>
                 <button
                   type="button"
-                  className="lb-btn min-h-12 bg-white text-[#0b1f33] hover:bg-white/90"
+                  className="lb-btn min-h-12 bg-white text-[#0A0A0A] hover:bg-white/90"
                   disabled={busy || !ready}
                   onClick={() => void interpretConversation()}
                 >
@@ -651,7 +651,7 @@ export default function SignPage() {
                   type="button"
                   className={`lb-btn min-h-12 ${
                     quickOn
-                      ? "bg-[#19b5b8] text-white"
+                      ? "bg-[#7C3AED] text-white"
                       : "bg-white/15 text-white border border-white/20"
                   }`}
                   onClick={() => setQuickOn((v) => !v)}
@@ -665,19 +665,19 @@ export default function SignPage() {
 
         {/* Conversation docked beside camera */}
         <section
-          className="flex min-h-[280px] flex-col overflow-hidden rounded-[1.5rem] border border-black/5 bg-white shadow-[0_20px_50px_rgba(11,31,51,0.12)] lg:min-h-[560px]"
+          className="flex min-h-[280px] flex-col overflow-hidden rounded-[1.5rem] border border-black/5 bg-white shadow-[0_20px_50px_rgba(10,10,10,0.12)] lg:min-h-[560px]"
           aria-label="Conversation near camera"
         >
           <div className="flex items-center justify-between border-b border-black/5 px-4 py-3">
             <div>
-              <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-[#0f8b8d]">
+              <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-[#5E0ED7]">
                 Live chat
               </p>
-              <h2 className="text-base font-bold text-[#0b1f33]">Conversation</h2>
+              <h2 className="text-base font-bold text-[#0A0A0A]">Conversation</h2>
             </div>
             <button
               type="button"
-              className="rounded-full bg-[#eef6f8] px-3 py-1.5 text-xs font-bold text-[#0f8b8d]"
+              className="rounded-full bg-[#FAFAFA] px-3 py-1.5 text-xs font-bold text-[#5E0ED7]"
               onClick={() => {
                 setMessages([]);
                 setLiveCaption("");
@@ -689,7 +689,7 @@ export default function SignPage() {
           </div>
           <div className="flex-1 space-y-2 overflow-y-auto px-3 py-3">
             {messages.length === 0 ? (
-              <p className="rounded-xl bg-[#eef6f8] px-3 py-4 text-sm text-[#486581]">
+              <p className="rounded-xl bg-[#FAFAFA] px-3 py-4 text-sm text-[#737373]">
                 Chat stays next to the camera. Show both hands, then Start live.
               </p>
             ) : (
@@ -698,8 +698,8 @@ export default function SignPage() {
                   key={m.id}
                   className={`rounded-2xl px-3 py-2.5 text-sm font-semibold ${
                     m.role === "signer"
-                      ? "ml-4 bg-[#0b1f33] text-white"
-                      : "mr-4 bg-[#d7f3f3] text-[#0b1f33]"
+                      ? "ml-4 bg-[#0A0A0A] text-white"
+                      : "mr-4 bg-[#EDE9FE] text-[#0A0A0A]"
                   }`}
                 >
                   <span className="text-[10px] font-bold uppercase opacity-70">
@@ -716,23 +716,23 @@ export default function SignPage() {
 
       {/* Captions + doctor reply under the camera/chat row */}
       <section className="lb-slide-up grid gap-3 lg:grid-cols-[1.4fr_1fr]">
-        <div className="rounded-[1.4rem] border-2 border-[#0f8b8d] bg-white p-4 shadow-sm sm:p-5">
-          <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-[#0f8b8d]">
+        <div className="rounded-[1.4rem] border-2 border-[#5E0ED7] bg-white p-4 shadow-sm sm:p-5">
+          <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-[#5E0ED7]">
             Captions for patient
           </p>
-          <p className="lb-caption-in mt-2 text-[clamp(1.4rem,3vw,2.2rem)] font-bold leading-snug text-[#0b1f33]">
+          <p className="lb-caption-in mt-2 text-[clamp(1.4rem,3vw,2.2rem)] font-bold leading-snug text-[#0A0A0A]">
             {liveCaption || lastPatient || "Doctor’s words appear here"}
           </p>
           {lastPatient && liveCaption ? (
-            <p className="mt-2 text-sm text-[#486581]">
+            <p className="mt-2 text-sm text-[#737373]">
               Last signed:{" "}
-              <span className="font-semibold text-[#0b1f33]">{lastPatient}</span>
+              <span className="font-semibold text-[#0A0A0A]">{lastPatient}</span>
             </p>
           ) : null}
         </div>
 
         <div className="rounded-[1.4rem] border border-black/5 bg-white/80 p-4 shadow-sm backdrop-blur">
-          <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-[#0f8b8d]">
+          <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-[#5E0ED7]">
             Doctor reply
           </p>
           <div className="mt-3 flex flex-col gap-2">
@@ -764,7 +764,7 @@ export default function SignPage() {
         </div>
       </section>
 
-      <section className="lb-slide-up rounded-[1.4rem] border border-black/5 bg-[#0b1f33] p-4 text-white">
+      <section className="lb-slide-up rounded-[1.4rem] border border-black/5 bg-[#0A0A0A] p-4 text-white">
         <h2 className="text-sm font-bold">Quick clinic signs</h2>
         <p className="mt-1 text-xs text-white/60">Tap to speak instantly</p>
         <div className="mt-3 flex flex-wrap gap-2">

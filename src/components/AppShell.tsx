@@ -39,7 +39,6 @@ export function AppShell({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     setRouteKey(pathname);
-    // Stop home voice assistant / leftover TTS when leaving a page
     stopSpeaking();
   }, [pathname]);
 
@@ -56,30 +55,29 @@ export function AppShell({ children }: { children: ReactNode }) {
     : NAV;
 
   return (
-    <div className="relative min-h-screen min-h-[100dvh]">
+    <div className="relative min-h-screen min-h-[100dvh] bg-white text-black">
       <div className="pointer-events-none fixed inset-0 -z-10 overflow-hidden" aria-hidden>
-        <div className="lb-bg-blob absolute -left-24 top-24 h-72 w-72 rounded-full bg-[#19b5b8]/12 blur-3xl" />
+        <div className="lb-bg-blob absolute -left-24 top-24 h-72 w-72 rounded-full bg-[#5E0ED7]/10 blur-3xl" />
         <div
-          className="lb-bg-blob absolute -right-20 top-40 h-80 w-80 rounded-full bg-[#0b1f33]/10 blur-3xl"
+          className="lb-bg-blob absolute -right-20 top-40 h-80 w-80 rounded-full bg-[#7C3AED]/08 blur-3xl"
           style={{ animationDelay: "2s" }}
         />
       </div>
 
-      <header className="kv-safe-top sticky top-0 z-40 border-b border-black/5 bg-[rgba(255,255,255,0.78)] backdrop-blur-2xl lb-header-in">
+      <header className="kv-safe-top sticky top-0 z-40 border-b border-black/5 bg-white/80 backdrop-blur-2xl lb-header-in">
         <div
           className={`mx-auto flex items-center justify-between gap-2 px-3 py-3 sm:gap-3 sm:px-4 ${
             wide ? "max-w-[1400px]" : "max-w-6xl"
           }`}
         >
           <BrandLogo
+            variant="emblem"
+            height={44}
             href={easyUser ? "/app/easy" : "/app"}
-            variant="wordmark"
-            height={30}
-            className="max-w-[min(52vw,200px)]"
           />
 
           <nav
-            className="hidden items-center gap-1 rounded-full border border-black/5 bg-white/70 p-1 shadow-sm lg:flex"
+            className="hidden items-center gap-1 rounded-full border border-black/5 bg-white/90 p-1 shadow-sm lg:flex"
             aria-label="App"
           >
             {navItems.map((item) => {
@@ -88,10 +86,10 @@ export function AppShell({ children }: { children: ReactNode }) {
                 <Link
                   key={item.href}
                   href={item.href}
-                  className={`relative rounded-full px-3.5 py-2 text-[13px] font-bold transition duration-300 ${
+                  className={`relative rounded-full px-3.5 py-2 text-[13px] font-semibold uppercase tracking-wide transition duration-300 ${
                     active
-                      ? "bg-[#0b1f33] text-white shadow lb-nav-active"
-                      : "text-[#486581] hover:bg-[#eef6f8] hover:text-[#0b1f33]"
+                      ? "bg-black text-white shadow"
+                      : "text-[#737373] hover:bg-[#FAFAFA] hover:text-black"
                   }`}
                 >
                   {item.label}
@@ -102,7 +100,7 @@ export function AppShell({ children }: { children: ReactNode }) {
 
           <div className="flex shrink-0 items-center gap-1.5 sm:gap-2">
             {user ? (
-              <span className="hidden max-w-[8rem] truncate rounded-full border border-black/8 bg-white px-3 py-1.5 text-xs font-bold text-[#0b1f33] shadow-sm sm:inline-flex lb-fade-up">
+              <span className="hidden max-w-[8rem] truncate rounded-full border border-black/8 bg-white px-3 py-1.5 text-xs font-semibold uppercase tracking-wide text-black shadow-sm sm:inline-flex">
                 {user.name}
               </span>
             ) : null}
@@ -118,10 +116,10 @@ export function AppShell({ children }: { children: ReactNode }) {
               <Link
                 key={item.href}
                 href={item.href}
-                className={`inline-flex min-h-11 shrink-0 items-center rounded-full px-4 py-2.5 text-xs font-bold transition duration-300 ${
+                className={`inline-flex min-h-11 shrink-0 items-center rounded-full px-4 py-2.5 text-xs font-semibold uppercase tracking-wide transition duration-300 ${
                   active
-                    ? "bg-[#0b1f33] text-white lb-nav-active"
-                    : "bg-white text-[#0b1f33] shadow-sm"
+                    ? "bg-black text-white"
+                    : "bg-[#FAFAFA] text-black shadow-sm"
                 }`}
               >
                 {item.label}

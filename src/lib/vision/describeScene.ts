@@ -5,13 +5,19 @@ export type SceneDescription = {
   description: string;
   source: "gemini" | "detector" | "offline";
   notice?: string;
+  objects?: string[];
 };
 
-/** Ask Gemini for a richer scene description. Never throws; never 429-spams the UI. */
+export type GeminiVisionResult = {
+  description: string;
+  objects: string[];
+};
+
+/** Ask Gemini for a richer scene description + object list. Never throws. */
 export async function askGeminiVision(
   imageDataUrl: string,
   detectorSummary: string
-): Promise<string | null> {
+): Promise<GeminiVisionResult | null> {
   try {
     const res = await fetch(apiUrl("/api/vision/describe"), {
       method: "POST",
@@ -22,7 +28,12 @@ export async function askGeminiVision(
       }),
     });
     const data = await res.json().catch(() => ({}));
-    if (data?.ok && data?.description) return String(data.description);
+    if (data?.ok && data?.description) {
+      const objects = Array.isArray(data.objects)
+        ? data.objects.map((o: unknown) => String(o).trim().toLowerCase()).filter(Boolean)
+        : [];
+      return { description: String(data.description), objects };
+    }
     return null;
   } catch {
     return null;
@@ -41,7 +52,11 @@ export async function fallbackSceneHint(imageDataUrl: string): Promise<string> {
 export async function describeScene(imageDataUrl: string): Promise<SceneDescription> {
   const gemini = await askGeminiVision(imageDataUrl, "");
   if (gemini) {
-    return { description: gemini, source: "gemini" };
+    return {
+      description: gemini.description,
+      source: "gemini",
+      objects: gemini.objects,
+    };
   }
   return {
     description: await fallbackSceneHint(imageDataUrl),

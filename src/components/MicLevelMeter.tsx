@@ -109,7 +109,7 @@ export function MicLevelMeter({ active, onLevel }: Props) {
       <div className="mt-2 h-2.5 overflow-hidden rounded-full bg-white/10">
         <div
           className={`h-full rounded-full transition-[width] duration-75 ${
-            pct > 12 ? "bg-[#19b5b8]" : pct > 4 ? "bg-[#7ef0f2]" : "bg-[#e4572e]"
+            pct > 12 ? "bg-[#7C3AED]" : pct > 4 ? "bg-[#DDD6FE]" : "bg-[#e4572e]"
           }`}
           style={{ width: `${Math.max(3, pct)}%` }}
         />

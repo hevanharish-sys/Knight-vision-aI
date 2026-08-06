@@ -112,10 +112,10 @@ function ModuleHubInner() {
       {/* Voice assistant only on Home — cleaned up on navigate away */}
       <VoiceAssistant autoStart />
 
-      <section className="lb-hero-stage relative overflow-hidden rounded-[2rem] bg-[#0b1f33] px-6 py-9 text-white shadow-[0_30px_70px_rgba(11,31,51,0.28)] sm:px-9 sm:py-12">
-        <div className="pointer-events-none absolute -left-16 top-0 h-52 w-52 rounded-full bg-[#19b5b8]/30 blur-3xl lb-orb" />
+      <section className="lb-hero-stage relative overflow-hidden rounded-[2rem] bg-[#0A0A0A] px-6 py-9 text-white shadow-[0_30px_70px_rgba(10,10,10,0.28)] sm:px-9 sm:py-12">
+        <div className="pointer-events-none absolute -left-16 top-0 h-52 w-52 rounded-full bg-[#7C3AED]/30 blur-3xl lb-orb" />
         <div
-          className="pointer-events-none absolute -right-12 bottom-0 h-60 w-60 rounded-full bg-[#0f8b8d]/25 blur-3xl lb-orb"
+          className="pointer-events-none absolute -right-12 bottom-0 h-60 w-60 rounded-full bg-[#5E0ED7]/25 blur-3xl lb-orb"
           style={{ animationDelay: "1.1s" }}
         />
         <div
@@ -126,7 +126,7 @@ function ModuleHubInner() {
 
         <div className="relative max-w-3xl">
           <p
-            className="lb-fade-up text-[11px] font-bold uppercase tracking-[0.24em] text-[#7ef0f2]"
+            className="lb-fade-up text-[11px] font-bold uppercase tracking-[0.24em] text-[#DDD6FE]"
             style={{ animationDelay: "80ms" }}
           >
             Knight Vision · Module hub
@@ -175,19 +175,19 @@ function ModuleHubInner() {
         </div>
       </section>
 
-      <section className="lb-modules-band rounded-[2rem] border border-black/5 p-4 shadow-[0_16px_40px_rgba(11,31,51,0.05)] backdrop-blur-sm sm:p-6">
+      <section className="lb-modules-band rounded-[2rem] border border-black/5 p-4 shadow-[0_16px_40px_rgba(10,10,10,0.05)] backdrop-blur-sm sm:p-6">
         <div
           className="lb-fade-up mb-6 flex flex-wrap items-end justify-between gap-3"
           style={{ animationDelay: "380ms" }}
         >
           <div>
-            <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-[#0f8b8d]">
+            <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-[#5E0ED7]">
               Core
             </p>
-            <h2 className="lb-display mt-1 text-2xl text-[#0b1f33] sm:text-3xl">
+            <h2 className="lb-display mt-1 text-2xl text-[#0A0A0A] sm:text-3xl">
               Start here
             </h2>
-            <p className="mt-1 max-w-xl text-sm text-[#486581]">
+            <p className="mt-1 max-w-xl text-sm text-[#737373]">
               Hover to preview motion. Profile matches get a “For you” badge.
             </p>
           </div>
@@ -196,7 +196,7 @@ function ModuleHubInner() {
               <Link
                 key={`chip-${mod.href}`}
                 href={mod.href}
-                className="lb-chip-bounce rounded-full border border-black/8 bg-white px-3.5 py-1.5 text-xs font-bold text-[#0b1f33] shadow-sm transition hover:-translate-y-0.5 hover:border-[#19b5b8]/50 hover:text-[#0f8b8d]"
+                className="lb-chip-bounce rounded-full border border-black/8 bg-white px-3.5 py-1.5 text-xs font-bold text-[#0A0A0A] shadow-sm transition hover:-translate-y-0.5 hover:border-[#7C3AED]/50 hover:text-[#5E0ED7]"
                 style={{ animationDelay: `${420 + i * 60}ms` }}
               >
                 {mod.shortcut}
@@ -223,10 +223,10 @@ function ModuleHubInner() {
           className="lb-fade-up mb-5"
           style={{ animationDelay: "520ms" }}
         >
-          <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-[#0f8b8d]">
+          <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-[#5E0ED7]">
             More tools
           </p>
-          <h2 className="lb-display mt-1 text-2xl text-[#0b1f33]">
+          <h2 className="lb-display mt-1 text-2xl text-[#0A0A0A]">
             Supporting modules
           </h2>
         </div>
@@ -252,7 +252,7 @@ export default function ModuleHubPage() {
   return (
     <Suspense
       fallback={
-        <div className="rounded-2xl bg-white/70 p-8 text-[#486581] lb-pulse-soft">
+        <div className="rounded-2xl bg-white/70 p-8 text-[#737373] lb-pulse-soft">
           Loading modules…
         </div>
       }

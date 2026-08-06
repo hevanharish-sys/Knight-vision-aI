@@ -1,6 +1,6 @@
 "use client";
 
-/** Ethereal lotus / flower bloom — Knight Vision teal glow (Veldara-style centerpiece). */
+/** Ethereal lotus / flower bloom — Knight Vision purple glow (Veldara-style centerpiece). */
 export function EtherealBloom({ className = "" }: { className?: string }) {
   return (
     <div className={`lb-bloom pointer-events-none ${className}`} aria-hidden>

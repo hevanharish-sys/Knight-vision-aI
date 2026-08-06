@@ -9,9 +9,41 @@ import {
 export const runtime = "nodejs";
 
 const SYSTEM_PROMPT = `You are the Knight Vision AI scene assistant for people who are blind or have low vision.
-Describe the camera scene in 2-4 short spoken sentences.
-Use the on-device detector list when provided — confirm objects, add left/right/near, hazards, doors, stairs, signs, readable text/OCR, medicine labels, currency if visible.
-Be concrete and calm. No markdown. Never refuse — give the best short description you can.`;
+Look carefully for everyday objects, especially: headphones, earbuds, microphone/mic, watch/wristwatch, ID card/badge, table/desk, chair, sofa, laptop, phone, keyboard, bottle, cup, glasses, bag, keys, door, stairs, people.
+Describe the scene in 2-4 short spoken sentences with left/right/near when useful.
+Also list every clear object you see.
+Return ONLY valid JSON with keys:
+- description (string, spoken sentences)
+- objects (array of short lowercase names, e.g. "headphones", "chair", "id card", "table", "microphone", "watch")
+No markdown. Never refuse.`;
+
+function parseVisionPayload(raw: string): {
+  description: string;
+  objects: string[];
+} {
+  const cleaned = raw
+    .replace(/^```json\s*/i, "")
+    .replace(/^```\s*/i, "")
+    .replace(/```$/i, "")
+    .trim();
+  try {
+    const parsed = JSON.parse(cleaned) as {
+      description?: string;
+      objects?: unknown;
+    };
+    const objects = Array.isArray(parsed.objects)
+      ? parsed.objects
+          .map((o) => String(o).trim().toLowerCase())
+          .filter(Boolean)
+          .slice(0, 20)
+      : [];
+    const description =
+      String(parsed.description || "").trim() || cleaned.slice(0, 500);
+    return { description, objects };
+  } catch {
+    return { description: cleaned.slice(0, 600), objects: [] };
+  }
+}
 
 export async function POST(request: Request) {
   try {
@@ -21,16 +53,22 @@ export async function POST(request: Request) {
 
     if (!image?.startsWith("data:image")) {
       return NextResponse.json(
-        { ok: false, description: null, source: "none", error: "image required" },
+        {
+          ok: false,
+          description: null,
+          objects: [],
+          source: "none",
+          error: "image required",
+        },
         { status: 400 }
       );
     }
 
     if (!hasGeminiKey()) {
-      // 200 so the browser does not treat this as a failed fetch
       return NextResponse.json({
         ok: false,
         description: null,
+        objects: [],
         source: "none",
         error: "missing_key",
       });
@@ -40,35 +78,40 @@ export async function POST(request: Request) {
       return NextResponse.json({
         ok: false,
         description: null,
+        objects: [],
         source: "cooldown",
         error: null,
       });
     }
 
     const { mimeType, data } = parseDataUrl(image);
-    const description = await tryGenerateWithGemini({
+    const raw = await tryGenerateWithGemini({
       systemInstruction: SYSTEM_PROMPT,
       parts: [
         {
           text: `On-device detections: ${detectorSummary || "none"}.
-Describe everything useful for safe navigation and reading from the image.`,
+Name headphones, mic, watch, ID card, table, chair and other visible items if present. JSON only.`,
         },
         { inlineData: { mimeType, data } },
       ],
     });
 
-    if (!description) {
+    if (!raw) {
       return NextResponse.json({
         ok: false,
         description: null,
+        objects: [],
         source: "quota",
         error: null,
       });
     }
 
+    const { description, objects } = parseVisionPayload(raw);
+
     return NextResponse.json({
       ok: true,
       description,
+      objects,
       source: "gemini",
       error: null,
     });
@@ -76,6 +119,7 @@ Describe everything useful for safe navigation and reading from the image.`,
     return NextResponse.json({
       ok: false,
       description: null,
+      objects: [],
       source: "error",
       error: null,
     });

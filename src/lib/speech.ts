@@ -69,12 +69,20 @@ export function createSpeechRecognition(options: {
   recognition.onstart = () => options.onStart?.();
 
   recognition.onresult = (event) => {
+    let interim = "";
+    let finalText = "";
     for (let i = event.resultIndex; i < event.results.length; i += 1) {
       const item = event.results[i];
-      options.onResult({
-        transcript: item[0].transcript.trim(),
-        isFinal: item.isFinal,
-      });
+      const piece = (item[0]?.transcript || "").trim();
+      if (!piece) continue;
+      if (item.isFinal) finalText = finalText ? `${finalText} ${piece}` : piece;
+      else interim = interim ? `${interim} ${piece}` : piece;
+    }
+    if (finalText) {
+      options.onResult({ transcript: finalText, isFinal: true });
+    }
+    if (interim) {
+      options.onResult({ transcript: interim, isFinal: false });
     }
   };
 
@@ -87,6 +95,31 @@ export function createSpeechRecognition(options: {
   };
 
   return recognition;
+}
+
+/** Errors that should not surface as hard failures during live captions. */
+export function isBenignSpeechError(error: string) {
+  const e = error.toLowerCase();
+  return (
+    e === "no-speech" ||
+    e === "aborted" ||
+    e === "network" ||
+    e.includes("quota")
+  );
+}
+
+export function humanizeSpeechError(error: string) {
+  const e = error.toLowerCase();
+  if (e === "not-allowed" || e === "service-not-allowed") {
+    return "Microphone permission denied. Allow mic access in the browser and try again.";
+  }
+  if (e === "audio-capture") {
+    return "No microphone found. Plug in a mic and try again.";
+  }
+  if (e === "network") {
+    return "Speech service network error. Check your connection, or use Gemini clip.";
+  }
+  return `Speech error: ${error}`;
 }
 
 function wait(ms: number) {
