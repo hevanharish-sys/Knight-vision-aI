@@ -1,0 +1,23 @@
+/** Clinic phrase map used by sign interpret API (server copy). */
+export const PHRASE_SPEECH: Record<string, string> = {
+  HELP: "I need help.",
+  HELLO: "Hello.",
+  PAIN: "I am in pain.",
+  "CHEST PAIN": "I have chest pain.",
+  WATER: "I need water.",
+  YES: "Yes.",
+  NO: "No.",
+  DOCTOR: "I need a doctor.",
+  OK: "I am okay.",
+  MEDICINE: "I need medicine.",
+  HUNGRY: "I am hungry.",
+  TOILET: "I need the toilet.",
+  FAMILY: "Please call my family.",
+  ALLERGY: "I have an allergy.",
+  EMERGENCY: "This is an emergency.",
+  THANKS: "Thank you.",
+  PLEASE: "Please.",
+  STOP: "Please stop.",
+  WAIT: "Please wait.",
+  NAME: "My name is…",
+};

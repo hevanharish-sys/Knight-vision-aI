@@ -10,9 +10,9 @@ import {
   isGeminiCoolingDown,
   parseDataUrl,
   tryGenerateWithGemini,
-} from "../src/lib/gemini";
-import { fallbackTranslate } from "../src/lib/offline-translate";
-import { PHRASE_SPEECH } from "../src/lib/sign/gestures";
+} from "./lib/gemini";
+import { fallbackTranslate } from "./lib/offline-translate";
+import { PHRASE_SPEECH } from "./lib/phrases";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 dotenv.config({ path: path.join(__dirname, ".env") });
