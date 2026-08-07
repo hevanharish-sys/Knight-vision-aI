@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useProfile } from "@/lib/profile";
 import { saveHubEntry } from "@/lib/hub";
 import { speak } from "@/lib/speech";
@@ -70,6 +70,17 @@ export function SOSButton({ compact = false }: { compact?: boolean }) {
       meta: { profile: profile || "none", lang },
     });
   }
+
+  useEffect(() => {
+    const onVoiceSos = () => {
+      firedRef.current = false;
+      triggerSOS();
+    };
+    window.addEventListener("knight-vision-sos", onVoiceSos);
+    return () => window.removeEventListener("knight-vision-sos", onVoiceSos);
+    // triggerSOS closes over latest medical/lang
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [lang, medical, profile, open]);
 
   function onPressStart() {
     if (open) return;

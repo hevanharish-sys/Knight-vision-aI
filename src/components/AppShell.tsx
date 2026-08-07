@@ -1,15 +1,15 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
-import { type ReactNode, useEffect, useState } from "react";
+import { usePathname, useRouter } from "next/navigation";
+import { type ReactNode, useEffect } from "react";
 import { BrandLogo } from "@/components/BrandLogo";
 import { GuideAssistant } from "@/components/GuideAssistant";
 import { ProfileSwitcher } from "@/components/ProfileSwitcher";
 import { SOSButton } from "@/components/SOSButton";
+import { VoiceNavOrb } from "@/components/VoiceNavOrb";
 import { useAuth } from "@/lib/auth";
 import { useProfile } from "@/lib/profile";
-import { stopSpeaking } from "@/lib/speech";
 
 const NAV = [
   { href: "/app", label: "Home" },
@@ -21,6 +21,17 @@ const NAV = [
   { href: "/app/hub", label: "Hub" },
 ];
 
+const PREFETCH_ROUTES = [
+  "/app",
+  "/app/easy",
+  "/app/speech",
+  "/app/sign",
+  "/app/vision",
+  "/app/translate",
+  "/app/document",
+  "/app/hub",
+] as const;
+
 function isActive(pathname: string, href: string) {
   if (href === "/app") return pathname === "/app";
   return pathname.startsWith(href);
@@ -28,6 +39,7 @@ function isActive(pathname: string, href: string) {
 
 export function AppShell({ children }: { children: ReactNode }) {
   const pathname = usePathname();
+  const router = useRouter();
   const { profile } = useProfile();
   const { user } = useAuth();
   const easyUser = profile === "blind" || profile === "low-vision";
@@ -35,12 +47,12 @@ export function AppShell({ children }: { children: ReactNode }) {
     pathname.startsWith("/app/sign") || pathname.startsWith("/app/vision");
   const onHome = pathname === "/app";
   const showGuide = !onHome;
-  const [routeKey, setRouteKey] = useState(pathname);
 
   useEffect(() => {
-    setRouteKey(pathname);
-    stopSpeaking();
-  }, [pathname]);
+    for (const href of PREFETCH_ROUTES) {
+      router.prefetch(href);
+    }
+  }, [router]);
 
   const navItems = easyUser
     ? [
@@ -64,7 +76,7 @@ export function AppShell({ children }: { children: ReactNode }) {
         />
       </div>
 
-      <header className="kv-safe-top sticky top-0 z-40 border-b border-black/5 bg-white/80 backdrop-blur-2xl lb-header-in">
+      <header className="kv-safe-top sticky top-0 z-40 border-b border-black/5 bg-white/80 backdrop-blur-2xl">
         <div
           className={`mx-auto flex items-center justify-between gap-2 px-3 py-3 sm:gap-3 sm:px-4 ${
             wide ? "max-w-[1400px]" : "max-w-6xl"
@@ -86,7 +98,8 @@ export function AppShell({ children }: { children: ReactNode }) {
                 <Link
                   key={item.href}
                   href={item.href}
-                  className={`relative rounded-full px-3.5 py-2 text-[13px] font-semibold uppercase tracking-wide transition duration-300 ${
+                  prefetch
+                  className={`relative rounded-full px-3.5 py-2 text-[13px] font-semibold uppercase tracking-wide transition-colors duration-100 ${
                     active
                       ? "bg-black text-white shadow"
                       : "text-[#737373] hover:bg-[#FAFAFA] hover:text-black"
@@ -116,7 +129,8 @@ export function AppShell({ children }: { children: ReactNode }) {
               <Link
                 key={item.href}
                 href={item.href}
-                className={`inline-flex min-h-11 shrink-0 items-center rounded-full px-4 py-2.5 text-xs font-semibold uppercase tracking-wide transition duration-300 ${
+                prefetch
+                className={`inline-flex min-h-11 shrink-0 items-center rounded-full px-4 py-2.5 text-xs font-semibold uppercase tracking-wide transition-colors duration-100 ${
                   active
                     ? "bg-black text-white"
                     : "bg-[#FAFAFA] text-black shadow-sm"
@@ -134,12 +148,11 @@ export function AppShell({ children }: { children: ReactNode }) {
           wide ? "max-w-[1400px]" : "max-w-6xl"
         } ${onHome ? "pb-10" : ""} kv-safe-bottom`}
       >
-        <main key={routeKey} className="lb-route-in">
-          {children}
-        </main>
+        <main>{children}</main>
       </div>
 
       {showGuide ? <GuideAssistant /> : null}
+      <VoiceNavOrb />
     </div>
   );
 }

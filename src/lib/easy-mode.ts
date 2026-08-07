@@ -1,12 +1,16 @@
 export type EasyActionId =
   | "describe"
   | "listen"
+  | "sign"
   | "document"
   | "translate"
   | "sos"
   | "help"
   | "home"
   | "hub"
+  | "modules"
+  | "orb_off"
+  | "orb_on"
   | "repeat";
 
 export type EasyAction = {
@@ -16,6 +20,8 @@ export type EasyAction = {
   href?: string;
   keywords: string[];
 };
+
+export const VOICE_ORB_KEY = "knight-vision-voice-orb";
 
 export const EASY_ACTIONS: EasyAction[] = [
   {
@@ -41,6 +47,13 @@ export const EASY_ACTIONS: EasyAction[] = [
     spoken: "Opening Speech captions so you can hear and follow spoken words as text.",
     href: "/app/speech?autolisten=1",
     keywords: ["listen", "speech", "caption", "captions", "hear", "talk", "doctor"],
+  },
+  {
+    id: "sign",
+    label: "Sign language",
+    spoken: "Opening Sign Interpreter.",
+    href: "/app/sign",
+    keywords: ["sign", "signing", "gesture", "hand", "asl", "isl"],
   },
   {
     id: "document",
@@ -74,7 +87,7 @@ export const EASY_ACTIONS: EasyAction[] = [
     id: "help",
     label: "Help / commands",
     spoken:
-      "You can say: describe, listen, read document, translate, S O S, home, or repeat.",
+      "You can say: describe, listen, sign, read document, translate, S O S, home, hub, or turn off.",
     keywords: ["help", "commands", "what can i say", "options", "menu"],
   },
   {
@@ -85,11 +98,38 @@ export const EASY_ACTIONS: EasyAction[] = [
     keywords: ["home", "easy", "main", "start", "menu"],
   },
   {
+    id: "modules",
+    label: "Module hub",
+    spoken: "Opening the module hub.",
+    href: "/app",
+    keywords: ["modules", "hub home", "module hub", "dashboard"],
+  },
+  {
     id: "hub",
     label: "Conversation hub",
     spoken: "Opening Conversation Hub.",
     href: "/app/hub",
     keywords: ["hub", "history", "conversations", "past"],
+  },
+  {
+    id: "orb_off",
+    label: "Turn voice orb off",
+    spoken: "Voice navigation is off. Say turn on anytime, or tap the orb.",
+    keywords: [
+      "turn off",
+      "orb off",
+      "stop listening",
+      "voice off",
+      "quiet",
+      "mute assistant",
+      "off mode",
+    ],
+  },
+  {
+    id: "orb_on",
+    label: "Turn voice orb on",
+    spoken: "Voice navigation is on. I am listening for page commands.",
+    keywords: ["turn on", "orb on", "start listening", "voice on", "wake up"],
   },
   {
     id: "repeat",
@@ -100,15 +140,34 @@ export const EASY_ACTIONS: EasyAction[] = [
 ];
 
 export function matchVoiceCommand(transcript: string): EasyAction | null {
-  const text = transcript.toLowerCase().trim();
-  if (!text) return null;
+  const raw = transcript.toLowerCase().trim();
+  if (!raw) return null;
+  // Normalize ASR quirks
+  const text = raw
+    .replace(/[’']/g, "'")
+    .replace(/\bwhats\b/g, "what's")
+    .replace(/\bvision assistant\b/g, "vision")
+    .replace(/\bopen\s+/g, "")
+    .replace(/\bgo\s+to\s+/g, "")
+    .replace(/\btake\s+me\s+to\s+/g, "")
+    .replace(/\s+/g, " ")
+    .trim();
 
   // Prefer longer / more specific keyword matches
   let best: { action: EasyAction; score: number } | null = null;
   for (const action of EASY_ACTIONS) {
     for (const keyword of action.keywords) {
-      if (text.includes(keyword)) {
-        const score = keyword.length;
+      const escaped = keyword.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+      const re = new RegExp(`(?:^|\\s)${escaped}(?:\\s|$|[.,!?])`, "i");
+      const loose =
+        keyword.includes(" ") || keyword.length >= 5
+          ? text.includes(keyword)
+          : false;
+      if (re.test(text) || text === keyword || loose) {
+        const score =
+          keyword.length +
+          (text === keyword ? 20 : 0) +
+          (keyword.includes(" ") ? 8 : 0);
         if (!best || score > best.score) {
           best = { action, score };
         }

@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useAuth } from "@/lib/auth";
 import { useProfile, type AccessibilityProfile } from "@/lib/profile";
@@ -13,13 +13,16 @@ import {
   parseSpokenNumber,
   parseYesNo,
   profileAskSpeech,
+  isQuickVoiceChoice,
   PROFILE_VOICE_OPTIONS,
   VOICE_GUIDE_DONE_KEY,
   VOICE_ONBOARD_KEY,
   type GuideBeat,
   type VoicePhase,
 } from "@/lib/voice-assistant";
+import { VOICE_ORB_KEY } from "@/lib/easy-mode";
 import {
+  ensureVoicesLoaded,
   isSpeechRecognitionSupported,
   listenOnce,
   sampleMicLevel,
@@ -28,12 +31,15 @@ import {
   warmMicPermission,
 } from "@/lib/speech";
 import { AssistantOrb, orbModeFromAssistant } from "@/components/AssistantOrb";
+import { MIC_LOCK_EVENT } from "@/components/VoiceNavOrb";
 type Props = {
   autoStart?: boolean;
 };
 
 export function VoiceAssistant({ autoStart = true }: Props) {
   const router = useRouter();
+  const search = useSearchParams();
+  const forceAssist = search.get("assist") === "1";
   const { user, ready: authReady, register, login, logout } = useAuth();
   const { profile, setProfile, ready: profileReady } = useProfile();
 
@@ -59,7 +65,8 @@ export function VoiceAssistant({ autoStart = true }: Props) {
 
   const say = useCallback(async (text: string) => {
     setCaption(text);
-    await speakAsync(text, { lang: "en-US", rate: 0.95 });
+    await ensureVoicesLoaded();
+    await speakAsync(text, { lang: "en-US", rate: 0.9, pitch: 1.05 });
   }, []);
 
   /** Cancel open mic listen (used when user taps a choice). */
@@ -77,15 +84,18 @@ export function VoiceAssistant({ autoStart = true }: Props) {
     setAwaitingTap(true);
     setHeard("");
     setCaption((c) =>
-      c.includes("Speak") || c.includes("Tap") ? c : "Speak now, or tap a button below"
+      c.includes("Speak") || c.includes("Tap")
+        ? c
+        : "Speak clearly now — or tap a button below"
     );
 
-    const sample = await sampleMicLevel(900);
+    // Short mic sample — don't delay listening too long
+    const sample = await sampleMicLevel(350);
     if (sample.label) {
       setMicHint(
         sample.ok
-          ? `Mic: ${sample.label}`
-          : `Mic quiet (${sample.label || "unknown"}). Tap buttons if voice fails — switch browser mic to your laptop if using Airdopes.`
+          ? `Mic ready · ${sample.label}`
+          : `Mic quiet (${sample.label}). Tap buttons if voice fails — use laptop mic if using earbuds.`
       );
     }
 
@@ -97,31 +107,40 @@ export function VoiceAssistant({ autoStart = true }: Props) {
       tapResolverRef.current = (text: string) => resolve(text);
     });
 
-    const fromVoice = (async () => {
-      // Single longer listen — retries fight with silent BT mics
-      let text = await listenOnce({
+    const listenPass = (delayMs: number) =>
+      listenOnce({
         lang: "en-US",
         fallbackLang: "en-IN",
-        timeoutMs: 8000,
-        delayMs: 400,
+        timeoutMs: 9000,
+        delayMs,
         signal: ac.signal,
+        quickCommit: isQuickVoiceChoice,
         onPartial: (partial) => {
           if (partial) setHeard(partial);
         },
       });
+
+    const fromVoice = (async () => {
+      // Pause briefly so TTS fully releases the mic channel
+      let text = await listenPass(550);
       if (!text.trim() && !ac.signal.aborted) {
         const tip =
           promptAgain ||
-          "I did not hear speech. Tap a button below, or speak again.";
+          "I did not catch that. Please say the number again, or tap a button.";
         setCaption(tip);
-        await speakAsync(tip, { lang: "en-US", rate: 0.95 });
+        await speakAsync(tip, { lang: "en-US", rate: 0.9, pitch: 1.05 });
         if (ac.signal.aborted) return "";
+        text = await listenPass(650);
+      }
+      // Third try with en-IN primary for Indian accents on digits
+      if (!text.trim() && !ac.signal.aborted) {
         text = await listenOnce({
-          lang: "en-US",
-          fallbackLang: "en-IN",
+          lang: "en-IN",
+          fallbackLang: "en-US",
           timeoutMs: 8000,
-          delayMs: 500,
+          delayMs: 400,
           signal: ac.signal,
+          quickCommit: isQuickVoiceChoice,
           onPartial: (partial) => {
             if (partial) setHeard(partial);
           },
@@ -132,7 +151,6 @@ export function VoiceAssistant({ autoStart = true }: Props) {
 
     try {
       const text = await Promise.race([fromTap, fromVoice]);
-      // Stop the other path
       cancelListen();
       tapResolverRef.current = null;
       setHeard(text);
@@ -161,12 +179,13 @@ export function VoiceAssistant({ autoStart = true }: Props) {
   const runGuide = useCallback(
     async (p: AccessibilityProfile) => {
       const steps = buildVoiceGuide(p);
+      const visionFirst = p === "blind" || p === "low-vision";
       setGuideSteps(steps);
       setGuideIndex(0);
       setPhase("guide");
       await say(
-        p === "blind" || p === "low-vision"
-          ? "I will now guide you one step at a time. After each step, say next, or say repeat."
+        visionFirst
+          ? "I will guide you one step at a time. After each step, say next to continue, open to visit that page, or repeat to hear again."
           : "Here is a short guide. Say next after each step."
       );
 
@@ -178,14 +197,17 @@ export function VoiceAssistant({ autoStart = true }: Props) {
         if (i === steps.length - 1) {
           localStorage.setItem(VOICE_GUIDE_DONE_KEY, "1");
           setPhase("ready");
-          if (step.href && (p === "blind" || p === "low-vision")) {
-            await say("Taking you to Easy Mode.");
-            router.push(step.href);
+          if (visionFirst) {
+            localStorage.setItem(VOICE_ORB_KEY, "on");
+            await say(
+              "Taking you to Easy Mode. A voice orb stays in the top corner — say describe, listen, or document to move around. Say turn off for off mode."
+            );
+            router.push(step.href || "/app/easy");
           }
           return;
         }
 
-        const reply = (await hear()).toLowerCase();
+        const reply = (await hear("Say next, open, repeat, or skip.")).toLowerCase();
         if (/\b(repeat|again)\b/.test(reply)) {
           i -= 1;
           continue;
@@ -193,14 +215,47 @@ export function VoiceAssistant({ autoStart = true }: Props) {
         if (/\b(skip|stop|done|finish)\b/.test(reply)) {
           localStorage.setItem(VOICE_GUIDE_DONE_KEY, "1");
           setPhase("ready");
-          await say("Guide paused. You can restart anytime.");
-          if (p === "blind" || p === "low-vision") router.push("/app/easy");
+          if (visionFirst) {
+            localStorage.setItem(VOICE_ORB_KEY, "on");
+            await say(
+              "Guide paused. Opening Easy Mode. Use the top voice orb to navigate pages, or say turn off."
+            );
+            router.push("/app/easy");
+          } else {
+            await say("Guide paused. You can restart anytime.");
+          }
           return;
         }
-        if (/\b(open|go)\b/.test(reply) && step.href) {
-          await say(`Opening ${step.title}.`);
+        // Blind users: "open" / "go" / "take me" → navigate to this step's page
+        if (
+          visionFirst &&
+          step.href &&
+          /\b(open|go|take me|visit|show|start)\b/.test(reply)
+        ) {
+          localStorage.setItem(VOICE_ORB_KEY, "on");
+          await say(`Opening ${step.title}. The voice orb can move you to other pages.`);
           router.push(step.href);
+          // Continue remaining guide only if still on home — usually we leave
+          setPhase("ready");
+          localStorage.setItem(VOICE_GUIDE_DONE_KEY, "1");
           return;
+        }
+        // "next" — for vision profiles, optionally peek the linked module then continue
+        if (
+          visionFirst &&
+          step.href &&
+          /\b(next|continue|go on)\b/.test(reply) &&
+          i < steps.length - 2
+        ) {
+          // Keep guide flowing; do not navigate yet
+          continue;
+        }
+        if (!/\b(next|continue|go on|okay|ok|yes)\b/.test(reply) && reply.trim()) {
+          // Unknown — gently continue if they might have said next poorly
+          if (!/\b(open|go|skip|stop)\b/.test(reply)) {
+            await say("Say next to continue, or open to visit this page.");
+            i -= 1;
+          }
         }
       }
     },
@@ -224,7 +279,7 @@ export function VoiceAssistant({ autoStart = true }: Props) {
 
         setPhase("greet");
         await say(
-          "Hello. I am your Knight Vision voice assistant. I will help you sign in, choose your accessibility profile, and guide you step by step."
+          "Hello. I am your Knight Vision assistant. I will help you sign in, choose a comfort mode, and guide you gently into the app."
         );
         if (runIdRef.current !== id) return;
 
@@ -325,18 +380,20 @@ export function VoiceAssistant({ autoStart = true }: Props) {
         if (needsProfile) {
           setPhase("profile_ask");
           await say(profileAskSpeech());
-          let num = parseSpokenNumber(await hear());
+          let num = parseSpokenNumber(await hear("Say a number from one to seven."));
           if (!num) {
-            await say("Please say a number from 1 to 7.");
-            num = parseSpokenNumber(await hear());
+            await say("I still did not catch a number. Please say one, two, three, four, five, six, or seven.");
+            num = parseSpokenNumber(await hear("Say just the number."));
           }
           let opt = PROFILE_VOICE_OPTIONS.find((o) => o.number === num);
           if (!opt) {
-            setError("Profile number not recognized. Tap a profile below.");
+            setError("Profile number not recognized. Tap a comfort mode below.");
             setPhase("error");
             return;
           }
 
+          setHeard(String(num));
+          setCaption(`Selected: ${num} · ${opt.label}`);
           setPhase("profile_confirm");
           await say(
             `You chose ${opt.label}. Say yes to confirm, or no to choose again.`
@@ -410,16 +467,38 @@ export function VoiceAssistant({ autoStart = true }: Props) {
       localStorage.getItem(VOICE_ONBOARD_KEY) === "1" &&
       localStorage.getItem(VOICE_GUIDE_DONE_KEY) === "1";
 
-    if (fullyDone) {
+    // Landing “assist=1” always re-opens the assistant for blind/low-vision entry
+    if (fullyDone && !forceAssist) {
       setAppeared(true);
       setPhase("ready");
       setCaption("Voice assistant ready. Tap Restart assistant to run setup again.");
       return;
     }
 
+    if (forceAssist) {
+      localStorage.removeItem(VOICE_GUIDE_DONE_KEY);
+    }
+
     startedRef.current = true;
     startArriveFlow();
-  }, [autoStart, authReady, profileReady, user, profile, startArriveFlow]);
+  }, [
+    autoStart,
+    authReady,
+    profileReady,
+    user,
+    profile,
+    forceAssist,
+    startArriveFlow,
+  ]);
+
+  // Pause the global voice orb while this home assistant owns the mic
+  useEffect(() => {
+    const lock = busy || listening || phase === "guide" || phase === "greet";
+    window.dispatchEvent(new CustomEvent(MIC_LOCK_EVENT, { detail: lock }));
+    return () => {
+      window.dispatchEvent(new CustomEvent(MIC_LOCK_EVENT, { detail: false }));
+    };
+  }, [busy, listening, phase]);
 
   // Kill voice + mic the moment user leaves Home
   useEffect(() => {
@@ -430,6 +509,7 @@ export function VoiceAssistant({ autoStart = true }: Props) {
       abortRef.current = null;
       tapResolverRef.current = null;
       stopSpeaking();
+      window.dispatchEvent(new CustomEvent(MIC_LOCK_EVENT, { detail: false }));
     };
   }, []);
 
@@ -570,19 +650,29 @@ export function VoiceAssistant({ autoStart = true }: Props) {
             </div>
           ) : null}
 
-          {phase === "profile_ask" ? (
+          {phase === "profile_ask" || phase === "profile_confirm" ? (
             <div className="mt-4 grid grid-cols-4 gap-2 sm:grid-cols-7">
-              {PROFILE_VOICE_OPTIONS.map((opt) => (
-                <button
-                  key={opt.id}
-                  type="button"
-                  onClick={() => submitTap(String(opt.number))}
-                  className="min-h-14 rounded-xl bg-white/10 text-lg font-black text-white transition hover:bg-[#7C3AED] hover:text-white"
-                  aria-label={`Say ${opt.number} ${opt.label}`}
-                >
-                  {opt.number}
-                </button>
-              ))}
+              {PROFILE_VOICE_OPTIONS.map((opt) => {
+                const selected =
+                  heard === String(opt.number) ||
+                  parseSpokenNumber(heard) === opt.number;
+                return (
+                  <button
+                    key={opt.id}
+                    type="button"
+                    onClick={() => submitTap(String(opt.number))}
+                    className={`min-h-14 rounded-xl text-lg font-black transition ${
+                      selected
+                        ? "bg-[#7C3AED] text-white ring-2 ring-white/40"
+                        : "bg-white/10 text-white hover:bg-[#7C3AED] hover:text-white"
+                    }`}
+                    aria-label={`Say ${opt.number} ${opt.label}`}
+                    aria-pressed={selected}
+                  >
+                    {opt.number}
+                  </button>
+                );
+              })}
             </div>
           ) : null}
 

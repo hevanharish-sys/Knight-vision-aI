@@ -28,10 +28,12 @@ function VisionPageInner() {
   const lastUiUpdateRef = useRef(0);
   const lastCountRef = useRef("");
   const lastCorrectRef = useRef(0);
+  const lastSeenLabelsRef = useRef<Set<string>>(new Set());
   const extraLabelsRef = useRef<string[]>([]);
   const facingRef = useRef<"user" | "environment">("user");
   const profileRef = useRef<string | null>(null);
   const autoStarted = useRef(false);
+  const autoLiveStarted = useRef(false);
 
   const { profile } = useProfile();
   const search = useSearchParams();
@@ -42,7 +44,7 @@ function VisionPageInner() {
     "Loading on-device detector… I’ll name people, objects, and hazards in the camera."
   );
   const [busy, setBusy] = useState(false);
-  const [live, setLive] = useState(false);
+  const [live, setLive] = useState(true);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
   const [lastAt, setLastAt] = useState("—");
@@ -81,10 +83,10 @@ function VisionPageInner() {
         if (cancelled) return;
         setDetectorReady(true);
         setDescription(
-          "Detector ready. Point the camera — boxes appear on what I see. Tap Describe all for a full spoken list."
+          "Detector ready — I’ll name what I see out loud. Point the camera and hold steady."
         );
-        setNotice("On-device detection is active (works without Gemini).");
-        if (easy) speak("Vision detector is ready.");
+        setNotice("Fast live detection + speak is on.");
+        speak("Vision ready. I will tell you what I see.");
       } catch (e) {
         setError(
           e instanceof Error
@@ -102,10 +104,16 @@ function VisionPageInner() {
     };
   }, [easy]);
 
-  // Live detect loop — draw every frame; React state only ~5x/sec
+  // Live detect loop — detect every frame; speak new finds quickly
   useEffect(() => {
     if (!readyCam || !detectorReady) return;
     runningRef.current = true;
+
+    if (!autoLiveStarted.current) {
+      autoLiveStarted.current = true;
+      liveRef.current = true;
+      setLive(true);
+    }
 
     const tick = () => {
       if (!runningRef.current) return;
@@ -116,7 +124,6 @@ function VisionPageInner() {
       if (video && canvas && detector?.isReady && video.readyState >= 2) {
         try {
           const raw = detector.detect(video);
-          // Fix COCO mislabels (earbud case → phone) using shape + Gemini hints
           const detected = refineDetections(raw, extraLabelsRef.current);
 
           canvas.width = video.videoWidth || 640;
@@ -125,7 +132,7 @@ function VisionPageInner() {
           if (ctx) drawDetections(ctx, detected, facingRef.current === "user");
 
           const now = Date.now();
-          if (now - lastUiUpdateRef.current > 200) {
+          if (now - lastUiUpdateRef.current > 100) {
             lastUiUpdateRef.current = now;
             const label = detected.length
               ? `${detected.length} detected`
@@ -137,45 +144,66 @@ function VisionPageInner() {
             setItems(detected);
           }
 
-          // COCO often calls earbud cases "phone" — auto-ask Gemini to confirm
-          const maybeWrongPhone = raw.some((d) => d.label === "phone");
+          // Fast announce: speak as soon as a new label locks in
+          const currentLabels = new Set(
+            detected.map((d) => (d.label === "face" ? "person" : d.label))
+          );
+          const brandNew = [...currentLabels].filter(
+            (l) => !lastSeenLabelsRef.current.has(l)
+          );
+          if (brandNew.length) {
+            lastSeenLabelsRef.current = currentLabels;
+            if (
+              liveRef.current &&
+              !busyRef.current &&
+              profileRef.current !== "deaf" &&
+              now - lastSpeakRef.current > 900
+            ) {
+              lastSpeakRef.current = now;
+              const line = detector.announceNew(brandNew, detected);
+              if (line) {
+                setDescription(line);
+                setLastAt(new Date().toLocaleTimeString());
+                setMode("live");
+                speak(line);
+              }
+            }
+          } else if (detected.length === 0) {
+            lastSeenLabelsRef.current = new Set();
+          } else {
+            // Drop labels that left the scene so they can be re-announced later
+            lastSeenLabelsRef.current = currentLabels;
+          }
+
+          // Background Gemini refine only for ambiguous small gadgets (non-blocking)
+          const needsEnrich = raw.some((d) =>
+            ["phone", "remote", "book", "clock"].includes(d.label)
+          );
           if (
-            maybeWrongPhone &&
+            needsEnrich &&
             !busyRef.current &&
-            now - lastCorrectRef.current > 4500
+            now - lastCorrectRef.current > 8000
           ) {
             lastCorrectRef.current = now;
-            const shot = cameraRef.current?.captureDataUrl(0.5);
+            const shot = cameraRef.current?.captureDataUrl(0.65);
             if (shot) {
-              void askGeminiVision(
-                shot,
-                detector.summarize(detected)
-              ).then((gemini) => {
-                if (!gemini?.objects?.length) return;
-                setExtraLabels(gemini.objects);
-                const corrected = refineDetections(
-                  detector.getLatest(),
-                  gemini.objects
-                );
-                setItems(corrected);
-                if (
-                  gemini.objects.some((o) =>
-                    /headphone|earbud|mic|watch|id card/i.test(o)
-                  )
-                ) {
-                  setNotice(
-                    `Corrected: ${gemini.objects.slice(0, 6).join(", ")}`
+              void askGeminiVision(shot, detector.summarize(detected, 4)).then(
+                (gemini) => {
+                  if (!gemini?.objects?.length) return;
+                  setExtraLabels(gemini.objects);
+                  setItems(
+                    refineDetections(detector.getLatest(), gemini.objects)
                   );
-                  window.setTimeout(() => setNotice(""), 4000);
                 }
-              });
+              );
             }
           }
 
+          // Periodic full list (keeps description fresh without drowning new alerts)
           if (liveRef.current && detected.length && !busyRef.current) {
-            if (now - lastSpeakRef.current > 4500) {
+            if (now - lastSpeakRef.current > 4000) {
               lastSpeakRef.current = now;
-              const summary = detector.summarize(detected);
+              const summary = detector.summarize(detected, 4);
               setDescription(summary);
               setLastAt(new Date().toLocaleTimeString());
               setMode("live");
@@ -217,15 +245,26 @@ function VisionPageInner() {
         extraLabelsRef.current
       );
       setItems(detected);
-      const localSummary = detector.summarize(detected);
+      const localSummary = detector.summarize(detected, 5);
       let summary = localSummary;
       let source: "gemini" | "detector" | "offline" = detected.length
         ? "detector"
         : "offline";
 
-      const shot = cameraRef.current?.captureDataUrl(0.55);
+      // Speak on-device result immediately — don't wait for Gemini
+      setDescription(localSummary);
+      setLastAt(new Date().toLocaleTimeString());
+      setMode(detected.length ? "live" : "offline");
+      if (profile !== "deaf" && localSummary) {
+        lastSpeakRef.current = Date.now();
+        speak(localSummary);
+      }
+      if (detected.length) {
+        setNotice(`Told you ${detected.length} on-device item(s). Checking Gemini…`);
+      }
+
+      const shot = cameraRef.current?.captureDataUrl(0.75);
       if (shot) {
-        // Gemini: rich description + headphones / mic / watch / ID / furniture, etc.
         const gemini = await askGeminiVision(shot, localSummary);
         if (gemini) {
           summary = gemini.description;
@@ -234,6 +273,8 @@ function VisionPageInner() {
           const spots = (gemini.objects || []).filter(Boolean);
           setExtraLabels(spots);
           setItems(refineDetections(detected, spots));
+          setDescription(summary);
+          setLastAt(new Date().toLocaleTimeString());
           const spotNote = spots.length
             ? ` Spotted: ${spots.slice(0, 8).join(", ")}.`
             : "";
@@ -242,30 +283,25 @@ function VisionPageInner() {
               ? `Gemini + ${detected.length} on-device detection(s).${spotNote}`
               : `Gemini scene description.${spotNote}`
           );
+          if (profile !== "deaf") {
+            lastSpeakRef.current = Date.now();
+            speak(summary);
+          }
         } else if (!detected.length) {
           summary = await fallbackSceneHint(shot);
           setMode("offline");
           setExtraLabels([]);
-          setNotice("Used a quick offline hint. Fuller reading available shortly.");
+          setDescription(summary);
+          setNotice("Used a quick offline hint.");
+          if (profile !== "deaf") speak(summary);
         } else {
           setMode("live");
-          setExtraLabels([]);
-          setNotice(
-            `Showing ${detected.length} on-device detection(s). Tap Describe again shortly for a fuller reading.`
-          );
+          setNotice(`Live on-device: ${detected.length} item(s).`);
         }
       } else if (!detected.length) {
-        setNotice(
-          "Point at headphones, a mic, watch, ID card, table, chair, phone, or person."
-        );
-      } else {
-        setMode("live");
-        setNotice(`Found ${detected.length} on-device item(s).`);
+        setNotice("Point at a person, chair, table, bottle, phone, or laptop.");
       }
 
-      setDescription(summary);
-      setLastAt(new Date().toLocaleTimeString());
-      if (profile !== "deaf") speak(summary);
       saveHubEntry({
         type: "vision",
         title:
@@ -470,11 +506,10 @@ function VisionPageInner() {
       <div className="rounded-[1.5rem] border border-black/5 bg-white/70 p-4">
         <p className="text-sm font-bold text-[#0A0A0A]">What I can detect</p>
         <p className="mt-1 text-xs leading-relaxed text-[#737373]">
-          Live boxes (on-device): people, chairs, tables, sofas, bottles, phones,
-          laptops, bags, cars, and 70+ more.{" "}
-          <strong>Describe now</strong> also spots headphones, earbuds, microphone,
-          watch, ID card / badge, desk, keys, doors, and stairs — then speaks the
-          scene. Live speak stays on-device so it never burns your API quota.
+          Live speak is on by default — new objects are announced right away, then a
+          short full list every few seconds. Boxes use a fast on-device model with
+          smoothing. <strong>Describe with Gemini</strong> adds headphones, mic,
+          watch, ID card, doors, and stairs when cloud is available.
         </p>
       </div>
 

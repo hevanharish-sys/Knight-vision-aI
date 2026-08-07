@@ -30,6 +30,7 @@ import {
   ZoomIn,
 } from "lucide-react";
 import { BrandLogo } from "@/components/BrandLogo";
+import { LandingVoiceWelcome } from "@/components/LandingVoiceWelcome";
 import {
   useProfile,
   type AccessibilityProfile,
@@ -286,9 +287,11 @@ export default function LandingPage() {
 
   return (
     <div
-      className={`${inter.className} scroll-smooth overflow-x-hidden bg-white font-semibold uppercase tracking-widest text-black`}
+      className={`${inter.className} overflow-x-hidden bg-white font-semibold uppercase tracking-widest text-black`}
       style={{ fontFamily: "'Inter', sans-serif" }}
     >
+      <LandingVoiceWelcome />
+
       {/* ── Hero ── */}
       <div className="relative flex min-h-[100svh] min-h-[100dvh] flex-col">
         <video
@@ -328,12 +331,30 @@ export default function LandingPage() {
                 animate="animate"
                 custom={i + 1}
               >
-                <Link
-                  href={link.href}
-                  className="text-[12px] font-semibold uppercase tracking-widest text-black transition hover:opacity-70 sm:text-[14px]"
-                >
-                  {link.label}
-                </Link>
+                {link.href.startsWith("#") ? (
+                  <a
+                    href={link.href}
+                    className="text-[12px] font-semibold uppercase tracking-widest text-black transition hover:opacity-70 sm:text-[14px]"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      const id = link.href.slice(1);
+                      const el = document.getElementById(id);
+                      if (!el) return;
+                      el.scrollIntoView({ behavior: "auto", block: "start" });
+                      window.history.replaceState(null, "", link.href);
+                    }}
+                  >
+                    {link.label}
+                  </a>
+                ) : (
+                  <Link
+                    href={link.href}
+                    prefetch
+                    className="text-[12px] font-semibold uppercase tracking-widest text-black transition hover:opacity-70 sm:text-[14px]"
+                  >
+                    {link.label}
+                  </Link>
+                )}
               </motion.div>
             ))}
           </nav>

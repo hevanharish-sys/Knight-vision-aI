@@ -35,7 +35,8 @@ export function ModuleCard({
   return (
     <Link
       href={href}
-      className={`lb-slide-up lb-module-card group relative flex flex-col overflow-hidden rounded-[1.75rem] border p-5 outline-none transition duration-300 ease-out hover:-translate-y-2.5 focus-visible:ring-4 focus-visible:ring-[#7C3AED]/45 sm:p-6 ${
+      prefetch
+      className={`lb-slide-up lb-module-card group relative flex flex-col overflow-hidden rounded-[1.75rem] border p-5 outline-none transition duration-200 ease-out hover:-translate-y-2.5 focus-visible:ring-4 focus-visible:ring-[#7C3AED]/45 sm:p-6 ${
         large ? "min-h-[250px] sm:min-h-[270px]" : "min-h-[190px]"
       } ${
         dark

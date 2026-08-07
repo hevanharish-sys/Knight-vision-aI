@@ -25,6 +25,7 @@ type SpeechRecognitionEventLike = {
     isFinal: boolean;
     0: { transcript: string };
     length: number;
+    [index: number]: { transcript: string };
   }>;
 };
 
@@ -63,7 +64,7 @@ export function createSpeechRecognition(options: {
   recognition.interimResults = true;
   recognition.lang = options.lang ?? "en-IN";
   if (typeof recognition.maxAlternatives === "number") {
-    recognition.maxAlternatives = 3;
+    recognition.maxAlternatives = 5;
   }
 
   recognition.onstart = () => options.onStart?.();
@@ -73,7 +74,18 @@ export function createSpeechRecognition(options: {
     let finalText = "";
     for (let i = event.resultIndex; i < event.results.length; i += 1) {
       const item = event.results[i];
-      const piece = (item[0]?.transcript || "").trim();
+      // Prefer top alternative; keep shorter digit-like alts if useful
+      let piece = (item[0]?.transcript || "").trim();
+      if (item.length > 1) {
+        for (let a = 1; a < Math.min(item.length, 5); a += 1) {
+          const alt = (item[a]?.transcript || "").trim();
+          if (!alt) continue;
+          if (/^[1-7]$/.test(alt) || /^(one|two|three|four|five|six|seven|yes|no)$/i.test(alt)) {
+            piece = alt;
+            break;
+          }
+        }
+      }
       if (!piece) continue;
       if (item.isFinal) finalText = finalText ? `${finalText} ${piece}` : piece;
       else interim = interim ? `${interim} ${piece}` : piece;
@@ -138,12 +150,69 @@ function kickSpeechSynthesis() {
   }
 }
 
+/** Prefer natural / neural English voices when the browser provides them. */
+export function pickElegantVoice(
+  langHint = "en"
+): SpeechSynthesisVoice | null {
+  if (!isSpeechSynthesisSupported()) return null;
+  const voices = window.speechSynthesis.getVoices();
+  if (!voices.length) return null;
+
+  const english = voices.filter((v) =>
+    v.lang.toLowerCase().startsWith(langHint.toLowerCase().slice(0, 2))
+  );
+  const pool = english.length ? english : voices;
+
+  const preferred = [
+    /google us english/i,
+    /microsoft aria/i,
+    /microsoft jenny/i,
+    /microsoft guy/i,
+    /microsoft natasha/i,
+    /samantha/i,
+    /karen/i,
+    /moira/i,
+    /daniel/i,
+    /natural/i,
+    /neural/i,
+    /premium/i,
+  ];
+
+  for (const re of preferred) {
+    const hit = pool.find((v) => re.test(v.name));
+    if (hit) return hit;
+  }
+
+  return (
+    pool.find((v) => /en-US/i.test(v.lang)) ||
+    pool.find((v) => /en-GB/i.test(v.lang)) ||
+    pool.find((v) => /en-IN/i.test(v.lang)) ||
+    pool[0] ||
+    null
+  );
+}
+
+/** Ensure voice list is loaded (Chrome loads async). */
+export function ensureVoicesLoaded(): Promise<void> {
+  if (!isSpeechSynthesisSupported()) return Promise.resolve();
+  if (window.speechSynthesis.getVoices().length) return Promise.resolve();
+  return new Promise((resolve) => {
+    const done = () => {
+      window.speechSynthesis.onvoiceschanged = null;
+      resolve();
+    };
+    window.speechSynthesis.onvoiceschanged = done;
+    window.setTimeout(done, 600);
+  });
+}
+
 export function speak(
   text: string,
   options?: {
     lang?: string;
     rate?: number;
     pitch?: number;
+    volume?: number;
     onEnd?: () => void;
   }
 ) {
@@ -154,9 +223,13 @@ export function speak(
 
   window.speechSynthesis.cancel();
   const utterance = new SpeechSynthesisUtterance(text);
-  utterance.lang = options?.lang ?? "en-IN";
-  utterance.rate = options?.rate ?? 1;
-  utterance.pitch = options?.pitch ?? 1;
+  const lang = options?.lang ?? "en-US";
+  utterance.lang = lang;
+  utterance.rate = options?.rate ?? 0.92;
+  utterance.pitch = options?.pitch ?? 1.02;
+  utterance.volume = options?.volume ?? 1;
+  const voice = pickElegantVoice(lang);
+  if (voice) utterance.voice = voice;
   utterance.onend = () => options?.onEnd?.();
   utterance.onerror = () => options?.onEnd?.();
   window.speechSynthesis.speak(utterance);
@@ -166,7 +239,7 @@ export function speak(
 /** Speak and resolve when the utterance finishes (or fails / times out). */
 export function speakAsync(
   text: string,
-  options?: { lang?: string; rate?: number; pitch?: number }
+  options?: { lang?: string; rate?: number; pitch?: number; volume?: number }
 ): Promise<void> {
   return new Promise((resolve) => {
     if (!isSpeechSynthesisSupported() || !text.trim()) {
@@ -183,21 +256,27 @@ export function speakAsync(
       resolve();
     };
 
-    window.speechSynthesis.cancel();
-    const utterance = new SpeechSynthesisUtterance(text);
-    utterance.lang = options?.lang ?? "en-IN";
-    utterance.rate = options?.rate ?? 0.95;
-    utterance.pitch = options?.pitch ?? 1;
-    utterance.onend = finish;
-    utterance.onerror = finish;
-    window.speechSynthesis.speak(utterance);
+    void ensureVoicesLoaded().then(() => {
+      if (done) return;
+      window.speechSynthesis.cancel();
+      const utterance = new SpeechSynthesisUtterance(text);
+      const lang = options?.lang ?? "en-US";
+      utterance.lang = lang;
+      // Slightly slower + warmer = more elegant assistant tone
+      utterance.rate = options?.rate ?? 0.9;
+      utterance.pitch = options?.pitch ?? 1.05;
+      utterance.volume = options?.volume ?? 1;
+      const voice = pickElegantVoice(lang);
+      if (voice) utterance.voice = voice;
+      utterance.onend = finish;
+      utterance.onerror = finish;
+      window.speechSynthesis.speak(utterance);
+    });
 
-    // Keep synthesis unstuck in Chrome
     const kick = window.setInterval(kickSpeechSynthesis, 250);
-    // Fallback if onend never fires (~ words * 420ms + buffer)
     const safety = window.setTimeout(
       finish,
-      Math.min(45000, Math.max(2500, text.split(/\s+/).length * 420 + 1500))
+      Math.min(50000, Math.max(2800, text.split(/\s+/).length * 480 + 1800))
     );
   });
 }
@@ -213,6 +292,11 @@ export type ListenOptions = {
   onPartial?: (transcript: string) => void;
   /** Cancel listening early (e.g. user tapped a button) */
   signal?: AbortSignal;
+  /**
+   * When true, commit as soon as a short digit / yes-no style answer is heard
+   * (including strong interim results).
+   */
+  quickCommit?: (transcript: string) => boolean;
 };
 
 /**
@@ -221,21 +305,21 @@ export type ListenOptions = {
  * - accepts final OR best interim transcript
  * - ignores no-speech until timeout
  * - longer post-TTS delay so mic isn't blocked
+ * - optional quickCommit for digit / yes-no answers
  */
 export async function listenOnce(options?: ListenOptions): Promise<string> {
-  // en-US is more reliable for short digits ("one", "two") than en-IN on many PCs
   const primaryLang = options?.lang ?? "en-US";
   const fallbackLang = options?.fallbackLang ?? "en-IN";
   const timeoutMs = options?.timeoutMs ?? 10000;
-  const delayMs = options?.delayMs ?? 900;
+  const delayMs = options?.delayMs ?? 700;
   const signal = options?.signal;
+  const quickCommit = options?.quickCommit;
 
   if (!isSpeechRecognitionSupported()) {
     throw new Error("Speech recognition is not supported in this browser");
   }
   if (signal?.aborted) return "";
 
-  // Ensure TTS has fully released the audio channel
   if (isSpeechSynthesisSupported()) {
     window.speechSynthesis.cancel();
   }
@@ -249,6 +333,7 @@ export async function listenOnce(options?: ListenOptions): Promise<string> {
       let best = "";
       let hardTimer = 0;
       let silenceTimer = 0;
+      let quickTimer = 0;
       let intentionalAbort = false;
 
       const finish = (value: string, err?: Error) => {
@@ -256,11 +341,16 @@ export async function listenOnce(options?: ListenOptions): Promise<string> {
         settled = true;
         window.clearTimeout(hardTimer);
         window.clearTimeout(silenceTimer);
+        window.clearTimeout(quickTimer);
         signal?.removeEventListener("abort", onAbort);
         try {
-          recognition?.abort();
+          recognition?.stop();
         } catch {
-          /* ignore */
+          try {
+            recognition?.abort();
+          } catch {
+            /* ignore */
+          }
         }
         recognition = null;
         if (err) reject(err);
@@ -273,11 +363,22 @@ export async function listenOnce(options?: ListenOptions): Promise<string> {
       };
       signal?.addEventListener("abort", onAbort, { once: true });
 
-      const scheduleSilenceStop = () => {
+      const scheduleSilenceStop = (ms = 700) => {
         window.clearTimeout(silenceTimer);
         silenceTimer = window.setTimeout(() => {
           if (best) finish(best);
-        }, 900);
+        }, ms);
+      };
+
+      const maybeQuickCommit = (text: string, isFinal: boolean) => {
+        if (!quickCommit || !text) return;
+        if (!quickCommit(text)) return;
+        window.clearTimeout(quickTimer);
+        // Digits often arrive as interim — commit quickly once stable
+        quickTimer = window.setTimeout(
+          () => finish(text),
+          isFinal ? 80 : 280
+        );
       };
 
       const startAt = Date.now();
@@ -288,13 +389,24 @@ export async function listenOnce(options?: ListenOptions): Promise<string> {
           continuous: true,
           onResult: ({ transcript, isFinal }) => {
             if (!transcript) return;
-            if (transcript.length >= best.length) best = transcript;
+            // Prefer longer / later transcripts; also keep shorter digit answers
+            if (
+              transcript.length >= best.length ||
+              (quickCommit?.(transcript) && transcript.length <= 12)
+            ) {
+              best = transcript;
+            }
             options?.onPartial?.(best);
+            maybeQuickCommit(best, isFinal);
             if (isFinal && transcript.length >= 1) {
-              finish(transcript);
+              if (quickCommit?.(transcript)) {
+                finish(transcript);
+                return;
+              }
+              scheduleSilenceStop(450);
               return;
             }
-            scheduleSilenceStop();
+            scheduleSilenceStop(quickCommit?.(best) ? 350 : 750);
           },
           onError: (error) => {
             if (intentionalAbort || error === "aborted") {
@@ -320,12 +432,16 @@ export async function listenOnce(options?: ListenOptions): Promise<string> {
                 } catch {
                   finish(best);
                 }
-              }, 200);
+              }, 180);
               return;
             }
             finish(best);
           },
         });
+
+        if (typeof recognition.maxAlternatives === "number") {
+          recognition.maxAlternatives = 5;
+        }
 
         recognition.start();
         hardTimer = window.setTimeout(() => finish(best), timeoutMs);
@@ -337,7 +453,7 @@ export async function listenOnce(options?: ListenOptions): Promise<string> {
   let text = await attempt(primaryLang);
   if (signal?.aborted) return text;
   if (!text && fallbackLang && fallbackLang !== primaryLang) {
-    await wait(300);
+    await wait(250);
     if (signal?.aborted) return text;
     text = await attempt(fallbackLang);
   }

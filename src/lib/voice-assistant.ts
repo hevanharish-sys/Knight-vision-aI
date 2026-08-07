@@ -172,43 +172,83 @@ export function buildVoiceGuide(profile: AccessibilityProfile): GuideBeat[] {
 const NUMBER_WORDS: Record<string, number> = {
   one: 1,
   "1": 1,
+  won: 1,
+  wun: 1,
   two: 2,
   "2": 2,
+  too: 2,
+  to: 2,
+  tu: 2,
   three: 3,
   "3": 3,
+  free: 3,
+  tree: 3,
   four: 4,
   "4": 4,
+  for: 4,
+  fore: 4,
+  fourth: 4,
   five: 5,
   "5": 5,
   six: 6,
   "6": 6,
+  sex: 6,
+  sicks: 6,
   seven: 7,
   "7": 7,
+  heaven: 7,
 };
 
-export function parseSpokenNumber(transcript: string): number | null {
+/** True when transcript looks like a finished short choice (digit / yes-no). */
+export function isQuickVoiceChoice(transcript: string): boolean {
   const text = transcript.toLowerCase().trim();
+  if (!text) return false;
+  if (parseSpokenNumber(text) != null) return true;
+  if (parseYesNo(text) != null && text.split(/\s+/).length <= 4) return true;
+  if (parseAuthChoice(text) != null && text.split(/\s+/).length <= 5) return true;
+  if (parseComfortModeChoice(text) != null) return true;
+  return false;
+}
+
+export function parseSpokenNumber(transcript: string): number | null {
+  const text = transcript
+    .toLowerCase()
+    .trim()
+    .replace(/[.,!?]/g, " ")
+    .replace(/\s+/g, " ");
   if (!text) return null;
 
-  // Bare digit anywhere (ASR often returns just "1")
+  // Bare digit
   if (/^[1-7]$/.test(text)) return Number(text);
 
-  const digit = text.match(/(?:^|\s)([1-7])(?:\s|$|[.,!?])/);
-  if (digit) return Number(digit[1]);
+  // Leading digit: "2 captions", "number 2"
+  const leading = text.match(/^(?:number|option|choice|press|say)?\s*([1-7])\b/);
+  if (leading) return Number(leading[1]);
 
-  // "won" / "too" common ASR mistakes for one/two
-  if (/\b(won|wun)\b/.test(text)) return 1;
-  if (/\b(too|to)\b/.test(text) && !/\b(today|tomorrow|together|into)\b/.test(text)) {
-    // only if short utterance
-    if (text.split(/\s+/).length <= 3) return 2;
-  }
+  const digit = text.match(/(?:^|\s)([1-7])(?:\s|$)/);
+  if (digit && text.split(/\s+/).length <= 5) return Number(digit[1]);
+
+  // Homophones / ASR mistakes for short answers
+  if (/^(won|wun)$/.test(text)) return 1;
+  if (/^(too|to|tu)$/.test(text)) return 2;
+  if (/^(free|tree)$/.test(text)) return 3;
+  if (/^(for|fore)$/.test(text)) return 4;
+  if (/^(sex|sicks)$/.test(text)) return 6;
+  if (/^heaven$/.test(text)) return 7;
 
   for (const [word, num] of Object.entries(NUMBER_WORDS)) {
-    if (new RegExp(`\\b${word}\\b`).test(text)) return num;
+    if (word.length === 1) continue;
+    if (new RegExp(`\\b${word}\\b`).test(text)) {
+      // Avoid "to" matching inside longer phrases unless short
+      if ((word === "to" || word === "for") && text.split(/\s+/).length > 3) {
+        continue;
+      }
+      return num;
+    }
   }
 
   const option = text.match(
-    /(?:number|option|choice|press|say)\s*([1-7]|one|two|three|four|five|six|seven)/i
+    /(?:number|option|choice|press|say)\s*([1-7]|one|two|three|four|five|six|seven|won|too|to|for)/i
   );
   if (option) {
     const raw = option[1].toLowerCase();
@@ -216,10 +256,43 @@ export function parseSpokenNumber(transcript: string): number | null {
     return NUMBER_WORDS[raw] ?? null;
   }
 
-  // first / second
   if (/\b(first|1st)\b/.test(text)) return 1;
   if (/\b(second|2nd)\b/.test(text)) return 2;
+  if (/\b(third|3rd)\b/.test(text)) return 3;
+  if (/\b(fourth|4th)\b/.test(text)) return 4;
+  if (/\b(fifth|5th)\b/.test(text)) return 5;
+  if (/\b(sixth|6th)\b/.test(text)) return 6;
+  if (/\b(seventh|7th)\b/.test(text)) return 7;
 
+  return parseComfortModeChoice(text);
+}
+
+/** Match comfort-mode by spoken name, not only number. */
+export function parseComfortModeChoice(transcript: string): number | null {
+  const text = transcript.toLowerCase().trim();
+  if (!text) return null;
+
+  if (/\b(voice\s*guide|blind|can't see|cannot see|visually impaired)\b/.test(text)) {
+    return 1;
+  }
+  if (/\b(caption|deaf|hard of hearing|sign language|sign mode)\b/.test(text)) {
+    return 2;
+  }
+  if (/\b(type and sign|speech support|speech difficult|mute|can't speak|cannot speak)\b/.test(text)) {
+    return 3;
+  }
+  if (/\b(large and clear|low vision|bigger text|magnif)\b/.test(text)) {
+    return 4;
+  }
+  if (/\b(simple steps|senior|elder|older)\b/.test(text)) {
+    return 5;
+  }
+  if (/\b(calm focus|autism|steady focus|sensory)\b/.test(text)) {
+    return 6;
+  }
+  if (/\b(standard|everything|full toolkit|no profile|normal)\b/.test(text)) {
+    return 7;
+  }
   return null;
 }
 
@@ -295,14 +368,16 @@ export function cleanSpokenName(transcript: string): string {
 
 export function profileAskSpeech(): string {
   return (
-    "Please choose how you want Knight Vision to help you. " +
-    "Say 1 for Voice Guide. " +
-    "Say 2 for Captions and Sign. " +
-    "Say 3 for Type and Sign. " +
-    "Say 4 for Large and Clear. " +
-    "Say 5 for Simple Steps. " +
-    "Say 6 for Calm Focus. " +
-    "Say 7 for Standard."
+    "Please choose your comfort mode. " +
+    "Say a number from one to seven. " +
+    "One, Voice Guide. " +
+    "Two, Captions and Sign. " +
+    "Three, Type and Sign. " +
+    "Four, Large and Clear. " +
+    "Five, Simple Steps. " +
+    "Six, Calm Focus. " +
+    "Seven, Standard. " +
+    "You may also say the mode name, or tap a button."
   );
 }
 
